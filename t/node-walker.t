@@ -12,7 +12,7 @@ plan *;
 my $parser = HTML::Parser::XML.new;
 my $xml = $parser.parse("t/basic.html".IO.slurp);
 
-my $helper = Template::Anti::NodeHelper.new(:origin($xml));
+my $helper = Template::Anti::NodeWalker.new(:origin($xml));
 
 my @expected = <
     html head title

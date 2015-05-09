@@ -16,7 +16,7 @@ class Template::Anti::NodeSet {
     method to-list { @!nodes }
 }
 
-class Template::Anti::NodeHelper {
+class Template::Anti::NodeWalker {
     has $.origin;
     has @!open-list = $!origin;
 
@@ -253,7 +253,7 @@ class Template::Anti::Selector::Actions {
         $m.make( -> $node {
             my $text = $m<string>.made;
 
-            my $walker = Template::Anti::NodeHelper.new(
+            my $walker = Template::Anti::NodeWalker.new(
                 origin => $node,
             );
 
@@ -374,7 +374,7 @@ class Template::Anti::Selector {
 
         die "unable to parse '$selector'" unless $match;
         
-        my $iter = Template::Anti::NodeHelper.new(
+        my $iter = Template::Anti::NodeWalker.new(
             origin => $!source,
         );
 
