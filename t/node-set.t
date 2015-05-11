@@ -5,7 +5,7 @@ use v6;
 use Test;
 use Template::Anti::Selector;
 
-my $ns = Template::Anti::NodeSet.new;
+my $ns = Template::Anti::Selector::NodeSet.new;
 $ns.put(1);
 $ns.put(2);
 $ns.put(1);
