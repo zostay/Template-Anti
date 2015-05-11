@@ -2,7 +2,7 @@ use v6;
 
 use XML;
 
-class Template::Anti::NodeSet {
+class Template::Anti::Selector::NodeSet {
     has @!nodes;
     has $!contains = SetHash.new({});
 
@@ -16,7 +16,7 @@ class Template::Anti::NodeSet {
     method to-list { @!nodes }
 }
 
-class Template::Anti::NodeWalker {
+class Template::Anti::Selector::NodeWalker {
     has $.origin;
     has @!open-list = $!origin;
 
@@ -253,7 +253,7 @@ class Template::Anti::Selector::Actions {
         $m.make( -> $node {
             my $text = $m<string>.made;
 
-            my $walker = Template::Anti::NodeWalker.new(
+            my $walker = Template::Anti::Selector::NodeWalker.new(
                 origin => $node,
             );
 
@@ -374,11 +374,11 @@ class Template::Anti::Selector {
 
         die "unable to parse '$selector'" unless $match;
         
-        my $iter = Template::Anti::NodeWalker.new(
+        my $iter = Template::Anti::Selector::NodeWalker.new(
             origin => $!source,
         );
 
-        my $set = Template::Anti::NodeSet.new;
+        my $set = Template::Anti::Selector::NodeSet.new;
         $match.made.($iter, $set);
 
         return $set.to-list;
