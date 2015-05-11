@@ -128,7 +128,7 @@ This method I<does not> return the object itself. Instead, it applies the given 
 =end pod
 
 class Template::Anti::NodeSet {
-    has @.nodes; #= The nodes within the node set (may be empty)
+    has XML::Node @.nodes; #= The nodes within the node set (may be empty)
     has @.data;  #= A list of models to use by D<method via>
 
     method text(Str $text) {

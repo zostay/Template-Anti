@@ -9,8 +9,7 @@ my $at = Template::Anti.new(:html("t/basic.html".IO.slurp));
 
 $at('title, h1').text('Sith Lords');
 $at('h1').attrib(title => 'The Force shall free me.');
-$at('ul.people').truncate(1);
-$at('ul.people li').apply([
+$at('ul.people').truncate(1).find('li').apply([
     { name => 'Vader',   url => 'http://example.com/vader' },
     { name => 'Sidious', url => 'http://example.com/sidious' },
 ]).via: -> $item, $sith-lord {
