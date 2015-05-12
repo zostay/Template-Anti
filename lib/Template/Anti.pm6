@@ -161,6 +161,56 @@ class Template::Anti {
     }
 
     method render {
-        return $!source.Str;
+        multi sub render-walk($print, XML::Document $doc) {
+            $print('<!DOCTYPE ' ~ $doc.doctype<type> ~ $doc.doctype<value> ~ '>')
+                if $doc.doctype;
+            render-walk($print, $doc.root);
+        }
+
+        multi sub render-walk($print, XML::Element $el) {
+            $print('<' ~ $el.name);
+            render-walk($print, $el.attribs);
+            if $el.nodes {
+                $print('>');
+                render-walk($print, $el.nodes);
+                $print('</' ~ $el.name ~ '>');
+            }
+            else {
+                $print('/>');
+            }
+        }
+
+        multi sub render-walk($print, XML::Text $text) {
+            $print($text.Str);
+        }
+        
+        multi sub render-walk($print, XML::Comment $comment) {
+            $print($comment.Str);
+        }
+        
+        multi sub render-walk($print, XML::PI $pi) { }
+        
+        multi sub render-walk($print, XML::CDATA $c) {
+            my $cdata = $c.data;
+            $cdata.=trans('<' => '&lt;', '>' => '&gtl;', '&' => '&amp;');
+            $print($cdata);
+        }
+
+        multi sub render-walk($print, %attribs) {
+            for %attribs.kv -> $k, $v {
+                $print(qq[ $k="{$v.trans('"' => '&quot;')}"]);
+            }
+        }
+
+        multi sub render-walk($print, @nodes) {
+            for @nodes -> $node { render-walk($print, $node) };
+        }
+
+        multi sub render-walk($print, $anything-else) { !!! }
+
+        my $output = '';
+        my $print = -> $str { $output ~= $str };
+        render-walk($print, $!source);
+        $output;
     }
 }
