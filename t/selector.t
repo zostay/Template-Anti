@@ -28,6 +28,11 @@ my $sq = Template::Anti::Selector.new(:source($xml));
 }
 
 {
+    my $class-ish = $sq('[class]');
+    is $class-ish.elems, 3, 'select [class]';
+}
+
+{
     my $en-ish = $sq('[hreflang|="en"]');
     is $en-ish.elems, 2, 'selected [hreflang|=en]';
 }

@@ -74,6 +74,7 @@ grammar Template::Anti::Selector::Grammar {
         || <class-name>
         || <id-name>
         || <contains-text>
+        || <attr-has>
         || <attr-prefix>
         || <attr-contains>
         || <attr-word>
@@ -89,6 +90,7 @@ grammar Template::Anti::Selector::Grammar {
     token id-name       { '#' <name> }
 
     token contains-text  { ':' <.ws> 'contains' <.ws> '(' <.ws> <string> <.ws> ')' }
+    token attr-has       { '[' <.ws> <name> <.ws> ']' }
     token attr-prefix    { '[' <.ws> <name> <.ws> '|=' <.ws> <string> <.ws> ']' }
     token attr-contains  { '[' <.ws> <name> <.ws> '*=' <.ws> <string> <.ws> ']' }
     token attr-word      { '[' <.ws> <name> <.ws> '~=' <.ws> <string> <.ws> ']' }
@@ -270,6 +272,13 @@ class Template::Anti::Selector::Actions {
 
             $contains-text
         })
+    }
+
+    method attr-has($/) {
+        make -> $node {
+            my $name = $/<name>.made;
+            $node.attribs{$name}.defined
+        }
     }
 
     method attr-prefix($m) {

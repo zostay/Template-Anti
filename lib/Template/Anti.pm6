@@ -118,6 +118,10 @@ This is the B<id selector>. It matches any element that has an attribute named C
 
 This is the B<contains-text selector>. It matches any element that contains that text. This matches both immediate parents of a matched text node and all ancestors.
 
+=head2 [attr]
+
+Thisi s the B<has-attribute selector>. It matches any element that contains the named attribute.
+
 =head2 [attr|="prefix"]
 
 This is the B<attribute-prefix selector>. It matches any element that contains the named attribute that has a value equal to the given string or whose value starts with that string followed by a hyphen ("-").
