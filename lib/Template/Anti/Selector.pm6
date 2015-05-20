@@ -4,7 +4,7 @@ use XML;
 
 class Template::Anti::Selector::NodeSet {
     has @!nodes;
-    has $!contains = SetHash.new({});
+    has SetHash $!contains .= new({});
 
     method put($node) {
         unless $!contains{$node.WHICH} {

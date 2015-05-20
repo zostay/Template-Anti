@@ -3,23 +3,63 @@
 use v6;
 
 use Test;
-use Template::Anti::Selector;
+use Template::Anti::NodeSet;
+use XML;
 
-my $ns = Template::Anti::Selector::NodeSet.new;
-$ns.put(1);
-$ns.put(2);
-$ns.put(1);
-$ns.put(3);
-$ns.put(1);
+my $xml = from-xml(q:to/END_OF_XML/);
+<root>
+    <one></one>
+    <two></two>
+    <three></three>
+</root>
+END_OF_XML
 
-my @list = $ns.to-list;
+{
+    my $ns = Template::Anti::NodeSet.new(
+        nodes => $xml.root.cloneNode,
+    );
+    $ns.text("Vader");
+    is $ns.nodes[0].Str, '<root>Vader</root>', 'text works';
+}
 
-diag @list.perl;
+{
+    my $root = $xml.root.cloneNode;
+    my $ns = Template::Anti::NodeSet.new(
+        nodes => $root.elements,
+    );
+    $ns.attrib(motto => 'The Force shall free me.');
 
-is @list.elems, 3, '3 elems';
-is @list[0], 1, 'first is 1';
-is @list[1], 2, 'second is 2';
-is @list[2], 3, 'third is 3';
+    is $ns.nodes[0].Str, '<one motto="The Force shall free me."></one>', 'attrib one works';
+    is $ns.nodes[1].Str, '<two motto="The Force shall free me."></two>', 'attrib two works';
+    is $ns.nodes[2].Str, '<three motto="The Force shall free me."></three>', 'attrib three works';
+}
+
+{
+    my $ns = Template::Anti::NodeSet.new(
+        nodes => $xml.root.cloneNode,
+    );
+    $ns.truncate(1);
+
+    is $ns.nodes[0].Str, '<root><one></one></root>';
+
+    $ns.find('one').apply([
+        { name => 'Vader',   url => 'http://example.com/vader' },
+        { name => 'Sidious', url => 'http://example.com/sidious' },
+    ]).via: -> $item, $sith-lord {
+        $item.text($sith-lord<name>);
+        $item.attrib(href => $sith-lord<url>);
+    };
+
+    is $ns.nodes[0].Str, '<root><one href="http://example.com/vader">Vader</one><one href="http://example.com/sidious">Sidious</one></root>';
+}
+
+{
+    my $ns = Template::Anti::NodeSet.new(
+        nodes => $xml.root,
+    );
+    $ns.text("Vader");
+    is $xml.root.Str, '<root>Vader</root>', 'modifies original';
+}
 
 done;
 

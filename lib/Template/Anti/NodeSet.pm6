@@ -154,9 +154,16 @@ class Template::Anti::NodeSet {
         for @!nodes -> $node {
             my $kept = 0;
 
-            for $node.nodes {
-                when XML::Element { .remove if $kept++ >= $keep }
-                default           { .remove }
+            if $keep == 0 {
+                $node.nodes = ();
+            }
+
+            else {
+                for $node.nodes {
+                    when XML::Element { .remove if $kept++ >= $keep }
+                    when XML::Node    { .remove }
+                    default           { }
+                }
             }
         }
 
