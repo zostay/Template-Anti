@@ -1,6 +1,6 @@
 # Template::Anti
 
-[![Build Status](https://travis-ci.org/zostay/Template-Anti.png)](https://travis-ci.org/zostay/Template-Anti)
+[![Build Status](https://travis-ci.org/zostay/Template-Anti.svg)](https://travis-ci.org/zostay/Template-Anti)
 
     use Template::Anti;
     my $tmpl = Template::Anti.load('<html><head><title>Hello World</title>...');
