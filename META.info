@@ -1,10 +1,11 @@
 {
     "name" : "Template::Anti",
     "version" : "0.1",
-    "description" : "The enti-template templating tool."
+    "description" : "The anti-template templating tool."
     "author" : "Andrew Sterling Hanenkamp",
     "provides" : {
         "Template::Anti": "lib/Template/Anti.pm6",
+        "Template::Anti::Template": "lib/Template/Anti/Template.pm6",
         "Template::Anti::NodeSet": "lib/Template/Anti/NodeSet.pm6",
         "Template::Anti::Selector::NodeSet": "lib/Template/Anti/Selector/NodeSet.pm6",
         "Template::Anti::Selector::NodeWalker": "lib/Template/Anti/Selector/NodeSet.pm6",
