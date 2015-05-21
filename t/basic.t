@@ -5,7 +5,7 @@ use v6;
 use Test;
 use Template::Anti;
 
-my $at = Template::Anti.process("t/basic.html".IO);
+my $at = Template::Anti.load("t/basic.html".IO);
 
 $at('title, h1').text('Sith Lords');
 $at('h1').attrib(title => 'The Force shall free me.');

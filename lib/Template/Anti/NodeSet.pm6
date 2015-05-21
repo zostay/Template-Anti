@@ -13,8 +13,8 @@ use Template::Anti::Selector;
 =begin SYNOPSIS
 
     use Template::Anti;
-    my $tmpl = Template::Anti.new(
-        html => '<html><head><title>Hello World</title>...',
+    my $tmpl = Template::Anti.load(
+        '<html><head><title>Hello World</title>...'
     );
 
     # $ns is a Template::Anti::NodeSet
@@ -37,7 +37,7 @@ use Template::Anti::Selector;
 
 =begin DESCRIPTION
 
-A NodeSet object is returned by L<Template::Anti> whenever a selector is run against some source. The selector may be empty. Operations may be run agains the selector to retrieve sub-selectors or get information about the document or manipulate the document.
+A NodeSet object is returned by L<Template::Anti::Template> whenever a selector is run against some source. The selector may be empty. Operations may be run agains the selector to retrieve sub-selectors or get information about the document or manipulate the document.
 
 As the purpose of this class is basically write-only, most methods of this class return the invocant. This way method calls may be easily chained together without having to assign them to a variable.
 

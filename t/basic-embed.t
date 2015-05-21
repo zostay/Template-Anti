@@ -5,7 +5,7 @@ use v6;
 use Test;
 use Template::Anti;
 
-my $at = Template::Anti.new.process("t/basic-embed.html".IO);
+my $at = Template::Anti.load("t/basic-embed.html".IO);
 
 $at.process-scripts;
 
