@@ -25,6 +25,9 @@ class Template::Anti::Selector::NodeWalker {
             my $next-node = @!open-list.shift;
 
             next if $next-node ~~ XML::Text;
+            next if $next-node ~~ XML::CDATA;
+            next if $next-node ~~ XML::PI;
+            next if $next-node ~~ XML::Comment;
 
             $next-node = $next-node.root
                 if $next-node ~~ XML::Document;

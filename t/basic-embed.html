@@ -1,12 +1,16 @@
-#!/usr/bin/env perl6
+<html>
+    <head>
+        <title>People</title>
+    </head>
+    <body>
+        <h1 title="motto">People</h1>
 
-use v6;
-
-use Test;
-use Template::Anti;
-
-my $at = Template::Anti.process("t/basic.html".IO);
-
+        <ul class="people">
+            <li><a href="#">Some Guy</a></li>
+            <li><a href="#">Another Guy</a></li>
+            <li><a href="#">Yet Another Guy</a></li>
+        </ul>
+<script type="text/x-perl6" data-template="$at"><![CDATA[
 $at('title, h1').text('Sith Lords');
 $at('h1').attrib(title => 'The Force shall free me.');
 $at('ul.people').truncate(1).find('li').apply([
@@ -17,9 +21,6 @@ $at('ul.people').truncate(1).find('li').apply([
     $a.text($sith-lord<name>);
     $a.attrib(href => $sith-lord<url>);
 };
-
-my $output = $at.render.subst(/\>\s+\</, "><", :g);
-
-is "$output\n", "t/basic.out".IO.slurp, 'output is as expected';
-
-done;
+]]></script>
+    </body>
+</html>

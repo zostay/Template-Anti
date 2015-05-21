@@ -5,12 +5,11 @@ use v6;
 use Test;
 use Template::Anti::Selector;
 
-use HTML::Parser::XML;
+use XML;
 
 plan *;
 
-my $parser = HTML::Parser::XML.new;
-my $xml = $parser.parse("t/basic.html".IO.slurp);
+my $xml = from-xml-file("t/basic.html");
 
 my $helper = Template::Anti::Selector::NodeWalker.new(:origin($xml));
 

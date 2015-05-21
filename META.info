@@ -12,6 +12,6 @@
         "Template::Anti::Selector::Actions": "lib/Template/Anti/Selector/NodeSet.pm6",
         "Template::Anti::Selector": "lib/Template/Anti/Selector/NodeSet.pm6",
     },
-    "depends" : [ "XML", "HTML::Parser::XML" ],
+    "depends" : [ "XML" ],
     "source-url" : "git://github.com/zostay/Template-Anti.git"
 }

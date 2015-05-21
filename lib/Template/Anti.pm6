@@ -1,6 +1,5 @@
 use v6;
 
-use HTML::Parser::XML;
 use XML;
 
 use Template::Anti::NodeSet;
@@ -15,11 +14,11 @@ use Template::Anti::Selector;
 =begin SYNOPSIS
 
     use Template::Anti;
-    my $tmpl = Template::Anti.new(
-        html => '<html><head><title>Hello World</title>...',
-    );
+    my $ta = Template::Anti.new;
 
-    # But you might just want to work with NodeSets like this:
+    my $tmpl = $ta.process('<html><head><title>Hello World</title>...');
+
+    # Now, apply your template rules from your Perl source
     $tmpl('title, h1').text('Sith Lords');
     $tmpl('h1').attrib(title => 'The Force shall free me.');
     $tmpl('ul.people').truncate(1).find('li').apply([
@@ -30,6 +29,19 @@ use Template::Anti::Selector;
         $a.text($sith-lord<name>);
         $a.attrib(href => $sith-lord<url>);
     });
+
+    # Render the output:
+    print $tmpl.render;
+
+    # Or if you insist on mixing your code and presentation, you can embed the
+    # rules within a <script/> tag in the source, which is still better than
+    # mixing it all over your HTML:
+    my $embt = Template::Anti.new(
+        html => '<html>...<script type="text/x-perl6 data-template="$anti">$anti("h1").text("Sith");...</script>...',
+    );
+
+    $embt.process;
+    print $empt.render;
 
 =end SYNOPSIS
 
@@ -43,9 +55,9 @@ There's a better way, L<Template::Anti>, the anti-templating engine. This librar
 
 =head1 Attributes
 
-=head2 has $.html
+=head2 has $.template
 
-    has Str $.html
+    has $.template
 
 This is the HTML file to use as your template.
 
@@ -152,18 +164,107 @@ This is the B<attribute start selector>. It matches any element that starts with
 
 =end pod
 
+class Template::Anti::Template { ... }
+
 class Template::Anti {
-    has Str $.html; #= The HTML source to parse and use for templating.
 
-    has $!parser = HTML::Parser::XML.new;
-    has $!source = $!parser.parse($!html);
-    has $!sq = Template::Anti::Selector.new(:$!source);
+    #| Use a string as the XML source.
+    multi method process(Str $source) {
+        my $template = from-xml($source);
+        return Template::Anti::Template.new(:$template);
 
-    method postcircumfix:<( )>(Str $selector) {
+        CATCH {
+            when 'could not parse XML' {
+                die "Input templates must be valid XML documents.";
+            }
+        }
+    }
+
+    #| Use a filename as the XML source.
+    multi method process(IO::Path $file) {
+        my $template = from-xml-file($file.Str); # .Str is silliness
+        return Template::Anti::Template.new(:$template);
+
+        CATCH {
+            when 'could not parse XML' {
+                die "Input templates must be valid XML documents.";
+            }
+        }
+    }
+
+    #| Use a file handle as the XML source.
+    multi method process(IO $stream) {
+        my $template = from-xml-stream($stream);
+        return Template::Anti::Template.new(:$template);
+
+        CATCH {
+            when 'could not parse XML' {
+                die "Input templates must be valid XML documents.";
+            }
+        }
+    }
+
+    #| Use an existing XML object as the XML source (cloned to avoid changing an original).
+    multi method process(XML::Node $xml) {
+        my $template = $xml.cloneNode;
+        return Template::Anti::Template.new(:$template);
+
+        CATCH {
+            when 'could not parse XML' {
+                die "Input templates must be valid XML documents.";
+            }
+        }
+    }
+
+    #! Grab the template from another Template object (cloned to avoid changing that template object's template).
+    multi method process(Template::Anti::Template $tmpl) {
+        my $template = $tmpl.template.cloneNode;
+        return Template::Anti::Template.new(:$template);
+
+        CATCH {
+            when 'could not parse XML' {
+                die "Input templates must be valid XML documents.";
+            }
+        }
+    }
+}
+
+class Template::Anti::Template {
+    has XML::Node $.template; #= The XML document or element to manipulate for output.
+
+    #| The selector for searching through and manipulating the document.
+    has $!sq = Template::Anti::Selector.new(:source($!template));
+
+    #| Apply the given selection criteria to the template.
+    method find(Str $selector) {
         my @nodes = $!sq($selector);
         return Template::Anti::NodeSet.new(:@nodes);
     }
 
+    #| Apply the given selection criteria to the template.
+    method postcircumfix:<( )>(Str $selector) {
+        return self.find($selector);
+    }
+
+    #| Evaluate and run the built in template scripts. This will also remove those scripts from the document.
+    method process-scripts {
+        my @scripts = $!sq('script[type="text/x-perl6"][data-template]');
+
+        for @scripts -> $script {
+            my $var = $script.attribs<data-template>;
+            my @content = $script.nodes;
+            my $code = [~] $script.nodes.map: {
+                when XML::CDATA { .data }
+                when XML::Text  { .text }
+                default         { '' }
+            };
+            $script.remove;
+
+            "my $var = self; $code".EVAL;
+        }
+    }
+
+    #| Render the template as HTML.
     method render {
         multi sub render-walk($print, XML::Document $doc) {
             $print('<!DOCTYPE ' ~ $doc.doctype<type> ~ $doc.doctype<value> ~ '>')
@@ -214,7 +315,7 @@ class Template::Anti {
 
         my $output = '';
         my $print = -> $str { $output ~= $str };
-        render-walk($print, $!source);
+        render-walk($print, $!template);
         $output;
     }
 }

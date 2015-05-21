@@ -4,11 +4,9 @@ use v6;
 
 use Test;
 use Template::Anti::Selector;
+use XML;
 
-use HTML::Parser::XML;
-
-my $parser = HTML::Parser::XML.new;
-my $xml = $parser.parse("t/selector.html".IO.slurp);
+my $xml = from-xml-file("t/selector.html");
 
 my $sq = Template::Anti::Selector.new(:source($xml));
 
@@ -110,6 +108,11 @@ my $sq = Template::Anti::Selector.new(:source($xml));
 {
     my $li-sibling = $sq('li + li');
     is $li-sibling.elems, 2, 'select li + li';
+}
+
+{
+    my $a-multi = $sq('a[class="zip"][hreflang]');
+    is $a-multi.elems, 1, 'select a[class=zip][hreflang]';
 }
 
 done;
