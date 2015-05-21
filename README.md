@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/zostay/Template-Anti.svg)](https://travis-ci.org/zostay/Template-Anti)
 
+## Synopsis
+
     use Template::Anti;
     my $tmpl = Template::Anti.load('<html><head><title>Hello World</title>...');
 
@@ -37,6 +39,8 @@
 
     $embt.process-scripts;
     print $empt.render;
+
+## Description
 
 Everyone knows that you should not mix your code with your presentation. Yet,
 whenever a software engineer needs to render some custom HTML or text or
