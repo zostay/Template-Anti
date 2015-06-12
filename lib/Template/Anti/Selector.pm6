@@ -374,7 +374,7 @@ class Template::Anti::Selector::Actions {
 class Template::Anti::Selector {
     has XML::Node $.source;
 
-    method postcircumfix:<( )>(Str $selector) {
+    method CALL-ME(Str $selector) {
         self.query($selector);
     }
 

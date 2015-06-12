@@ -189,7 +189,7 @@ class Template::Anti::Template {
     }
 
     #| Apply the given selection criteria to the template.
-    method postcircumfix:<( )>(Str $selector) {
+    method CALL-ME(Str $selector) {
         return self.find($selector);
     }
 
