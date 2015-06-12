@@ -265,4 +265,8 @@ class Template::Anti::Template {
         render-walk($print, $!template);
         $output;
     }
+
+    multi method perl() {
+        return 'Template::Anti::Template.new(template => from-xml("' ~ $!template.Str.trans([ '"' ] => [ "\"" ]) ~ '"))';
+    }
 }

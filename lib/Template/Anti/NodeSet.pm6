@@ -205,5 +205,12 @@ class Template::Anti::NodeSet {
 
         Template::Anti::NodeSet.new(:nodes(@new-nodes));
     }
+
+    multi method perl() {
+        return 'Template::Anti::NodeSet(nodes => '
+            ~ (@!nodes.map({ 'from-xml("' ~ $^node.Str.trans([ '"' ] => [ "\"" ]) ~ '")' }).join(', '))
+            ~ ', data => ' ~ (@!data.perl)
+            ~ ')';
+    }
 }
 

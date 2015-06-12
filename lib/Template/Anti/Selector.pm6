@@ -395,5 +395,9 @@ class Template::Anti::Selector {
 
         return $set.to-list;
     }
+
+    multi method perl() {
+        return 'Template::Anti::Selector.new(source => from-xml("' ~ $!source.Str.trans([ '"' ] => [ "\"" ]) ~ '"))';
+    }
 }
 
