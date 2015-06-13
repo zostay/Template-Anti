@@ -233,7 +233,7 @@ class Template::Anti::Template {
         }
 
         multi sub render-walk($print, XML::Text $text) {
-            $print($text.Str);
+            $print($text.Str.trans([ '<', '>', '&' ] => [ '&lt;', '&gt;', '&amp;' ]));
         }
         
         multi sub render-walk($print, XML::Comment $comment) {
@@ -244,7 +244,7 @@ class Template::Anti::Template {
         
         multi sub render-walk($print, XML::CDATA $c) {
             my $cdata = $c.data;
-            $cdata.=trans('<' => '&lt;', '>' => '&gtl;', '&' => '&amp;');
+            $cdata.=trans([ '<', '>', '&' ] => [ '&lt;', '&gtl;', '&amp;' ]);
             $print($cdata);
         }
 

@@ -22,6 +22,7 @@ use Template::Anti::Selector;
 
     # But you might just want to work with NodeSets like this:
     $tmpl('title, h1').text('Sith Lords');
+    $tmpl('div.info').html('<p>Some <strong>really</strong> interesting info.</p>');
     $tmpl('h1').attrib(title => 'The Force shall free me.');
     $tmpl('ul.people').truncate(1);
     $tmpl('ul.people li').apply([
@@ -63,9 +64,17 @@ This is the current data associated with the node set for use with D<method via>
 
     method text(Template::Anti::NodeSet:D: Str $text) returns Template::Anti::NodeSet
 
-Replaces the contents of the contianed nodes with the given C<$text>.
+Replaces the contents of the contained nodes with the given C<$text>. If the text contains any "<", ">", or "&", they will be escaped for rendering as HTML text. See L<#method_html> if you want to insert HTML tags.
 
-Returns the node set object so that this method may chained.
+Returns the node set object so that this method may be chained.
+
+=head2 method html
+
+    method html(Template::Anti::NodeSet:D: Str $html) returns Template::Anti::NodeSet
+
+Replaces the contents of the contained nodes with the given C<$html>. The HTML is parsed and inserted as a series of HTML node objects. If you want to insert text with all characters with meaning HTML escaped, see L<#method_text>.
+
+Returns the node set object so that this method may be chained.
 
 =head2 method attrib
 
@@ -135,6 +144,15 @@ class Template::Anti::NodeSet {
         self.truncate;
         for @!nodes -> $node {
             $node.append(XML::Text.new(:$text));
+        }
+
+        self
+    }
+
+    method html(Str $text) {
+        self.truncate;
+        for @!nodes -> $node {
+            $node.append(from-xml($text));
         }
 
         self
