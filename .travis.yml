@@ -19,6 +19,8 @@ before_install:
 install:
     # must do *something* in the install phase
     - rakudobrew build-panda
+    # why is projects.json fubarred?
+    - cat /home/travis/.rakudobrew/moar-nom/install/share/perl6/site/panda/projects.json
 script:
     # Pull in the dependencies before running tests
     - panda installdeps .
