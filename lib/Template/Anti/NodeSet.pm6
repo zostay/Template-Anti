@@ -130,9 +130,15 @@ You will generate output like this:
 
 =head2 method find
 
-    method find(Template::Anti::NodeSet:D: Str $selector) returns TEmplate::Anti::NodeSet
+    method find(Template::Anti::NodeSet:D: Str $selector) returns Template::Anti::NodeSet
 
 This method I<does not> return the object itself. Instead, it applies the given C<$selector> against all the contained nodes and returns a new L<Template::Anti::NodeSet> containing those nodes.
+
+=head2 method postcircumfix:<( )>
+
+    method postcircumfix:<( )>(Template::Anti::NodeSet:D: Str $selector) returns Template::Anti::NodeSet
+
+This is an alias for L<#method_find>.
 
 =end pod
 
@@ -222,6 +228,10 @@ class Template::Anti::NodeSet {
         }
 
         Template::Anti::NodeSet.new(:nodes(@new-nodes));
+    }
+
+    method CALL-ME(Str $selector) {
+        self.find($selector);
     }
 
     multi method perl() {
