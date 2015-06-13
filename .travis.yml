@@ -19,11 +19,11 @@ before_install:
 install:
     # must do *something* in the install phase
     - rakudobrew build-panda
-    # why is projects.json fubarred?
-    - cat /home/travis/.rakudobrew/moar-nom/install/share/perl6/site/panda/projects.json
 script:
     # Pull in the dependencies before running tests
     - panda installdeps .
+    # why is projects.json fubarred?
+    - cat /home/travis/.rakudobrew/moar-nom/install/share/perl6/site/panda/projects.json
     # tests that module passes tests *before* compile
     - prove -v -s -j$(test-jobs) -e "perl6 --ll-exception -Ilib" $(test-files)
     # runs tests again, but catches some heisenbugs (mostly with precompiled modules)
