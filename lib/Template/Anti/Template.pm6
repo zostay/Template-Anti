@@ -213,6 +213,9 @@ class Template::Anti::Template {
 
     #| Render the template as HTML.
     method render {
+        # From the HTML 5.1 spec
+        my $void-elements = set <area base br col embed hr img input keygen link menuitem meta param source track wbr>;
+
         multi sub render-walk($print, XML::Document $doc) {
             $print('<!DOCTYPE ' ~ $doc.doctype<type> ~ $doc.doctype<value> ~ '>')
                 if $doc.doctype;
@@ -227,8 +230,11 @@ class Template::Anti::Template {
                 render-walk($print, $el.nodes);
                 $print('</' ~ $el.name ~ '>');
             }
+            elsif $el.name ∈ $void-elements {
+                $print('>');
+            }
             else {
-                $print('/>');
+                $print('></' ~ $el.name ~ '>');
             }
         }
 
@@ -249,7 +255,7 @@ class Template::Anti::Template {
         }
 
         multi sub render-walk($print, %attribs) {
-            for %attribs.kv -> $k, $v {
+            %attribs.sort».kv.flatmap: -> $k, $v {
                 $print(qq[ $k="{$v.trans('"' => '&quot;')}"]);
             }
         }
