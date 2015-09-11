@@ -61,5 +61,5 @@ END_OF_XML
     is $xml.root.Str, '<root>Vader</root>', 'modifies original';
 }
 
-done;
+done-testing;
 
