@@ -222,7 +222,7 @@ class Template::Anti::NodeSet {
     }
 
     method find(Str $selector) {
-        my @new-nodes = @!nodes.map: -> $source {
+        my @new-nodes = flat @!nodes.map: -> $source {
             my $sq = Template::Anti::Selector.new(:$source);
             $sq($selector)
         }
@@ -235,7 +235,7 @@ class Template::Anti::NodeSet {
     }
 
     multi method perl() {
-        return 'Template::Anti::NodeSet(nodes => '
+        'Template::Anti::NodeSet(nodes => '
             ~ (@!nodes.map({ 'from-xml("' ~ $^node.Str.trans([ '"' ] => [ "\"" ]) ~ '")' }).join(', '))
             ~ ', data => ' ~ (@!data.perl)
             ~ ')';
