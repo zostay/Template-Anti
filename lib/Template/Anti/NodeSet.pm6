@@ -183,10 +183,9 @@ class Template::Anti::NodeSet {
             }
 
             else {
-                for $node.nodes {
+                for @=$node.nodes {
                     when XML::Element { .remove if $kept++ >= $keep }
                     when XML::Node    { .remove }
-                    default           { }
                 }
             }
         }
