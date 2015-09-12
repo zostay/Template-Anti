@@ -12,7 +12,7 @@ $ns.put(1);
 $ns.put(3);
 $ns.put(1);
 
-my @list = $ns.to-list;
+my @list = $ns.list;
 
 diag @list.perl;
 
