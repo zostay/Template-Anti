@@ -2,7 +2,7 @@
     "name" : "Template::Anti",
     "version" : "0.1",
     "description" : "The anti-template templating tool.",
-    "author" : "Andrew Sterling Hanenkamp",
+    "authors" : [ "Sterling Hanenkamp <hanenkamp@cpan.org>" ],
     "provides" : {
         "Template::Anti": "lib/Template/Anti.pm6",
         "Template::Anti::Template": "lib/Template/Anti/Template.pm6",
@@ -13,6 +13,7 @@
         "Template::Anti::Selector::Actions": "lib/Template/Anti/Selector.pm6",
         "Template::Anti::Selector": "lib/Template/Anti/Selector.pm6"
     },
-    "depends" : [ "XML" ],
-    "source-url" : "git://github.com/zostay/Template-Anti.git"
+    "depends" : [ "DOM::Tiny" ],
+    "source-url" : "git://github.com/zostay/Template-Anti.git",
+    "perl": "6.c"
 }
