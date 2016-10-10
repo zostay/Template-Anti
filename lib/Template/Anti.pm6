@@ -160,94 +160,87 @@ To process this template, you can run something like this:
 
 If no code reference is passed to C<template>, Template::Anti will attempt to find script tags in the markup itself.
 
-=head1 Methods
+=head1 Exported Routines
 
-=head2 multi method load
+=head2 sub template
 
-    multi method load(Template::Anti: Str $source) returns Template::Anti::Template
+    sub template(&process?, Str:D :$source!, Str:D :$format = 'html') returns Routine:D
 
-Reads the XML template from the text in C<$source> and returns a L<Template::Anti::Template> for processing and rendering.
+This routine builds a template routine and returns it. The returned routine completely encapsulates the processing of the template.
 
-    multi method load(Template::Anti: IO::Path $file) returns Template::Anti::Template
+The C<&process> is optional. When given, it names the routine to call to transform a template source and stash into a final version of the template source. If not given, it is assumed that any processing will be embedded within the template. When given, it must have a signature like the following:
 
-Reads the XML template from the file named C<$file> and returns a L<Template::Anti::Template>.
+    sub ($dom, %stash) { ... }
 
-    multi method load(Template::Anti: IO $handle) returns Template::Anti::Template
+The return value of this method is ignored and it should modify the C<$dom> object in place. The type of that C<$dom> object depends on the value of C<$format>.
 
-Reads the XML file from the file handle in C<$handle> and returns a L<Template::Anti::Template>.
+The C<$source> is required and contains the complete contents of the template source. For HTML, this would be a regular HTML file. For XML, it would be a regular XML file, etc.
 
-    multi method load(Template::Anti: XML::Node $xml) returns Template::Anti::Template
+The C<$format> tells the C<template> method which format the file is in and how to parse and process it. Template::Anti provides two built-in formats, "html" and "xml", both use a slightly extended L<DOM::Tiny> to parse and process the file. Custom formats can also be crafted. See L</Advanced Formats>.
 
-Uses the given XML node to build a template and returns that in L<Template::Anti::Template>. The given C<$xml> node is cloned before use.
+The format also determines how to extract embedded templates. In the case of "xml" and "html", the embedding is handled via C«<script>» tags that have the type set to "application/anti+perl6". These actually support the use of multiple C«<script>» tags, which are process in order they appear in the file, each getting it's own C<data-dom> and C<data-stash> settings (see L</Inline Processing>).
 
-    multi method load(Template::Anti: Template::Anti::Template $tmpl) returns Template::Anti::Template
+The returned routine will have the following signature:
 
-Uses the given template, C<$tmpl>, as the template. That is, it grabs the L<XML::Node> that the template wraps, clones it, and then returns a new L<Template::Anti::Template> for it.
+    sub (*%stash) returns Str:D { ... }
+
+When called with a stash, that stash will be passed into the C<&process> method (or embedded equivalent). Once C<&process> has been called, the template object (C<$dom> in the signature above), will be stringified by calling the C<Str> method on it. That value is returned.
+
+=head2 multi get-format-object
+
+    multi get-format-object('html')
+    multi get-format-object('xml')
+
+These each return a format object that will parse the source using a slightly extended version of L<DOM::Tiny> and return it. They will also extract embedded processing code from C«<script>» tags in the source.
+
+New multis can be defined to extend the formats available to Template::Anti. See L</Advanced Formats> for details.
+
+=head1 DOM::Tiny Customization
+
+Template::Anti uses a slightly customized subclass of L<DOM::Tiny> that provide a couple additional features that are useful when templating. Some or all of these might be rolled up into L<DOM::Tiny> in the future, but they are here for now:
+
+=head2 method postcircumfix:<( )>
+
+    multi method postcircumfix:<( )> ($selector) returns Seq:D
+    multi method postcircumfix:<( )> ($selector, Bool :$one) returns DOM::Tiny:D
+
+This allows for a slightly shortened notation when using L<DOM::Tiny>. Basically, the following are equivalent:
+
+    # Long notation
+    @ps = $dom.find('p');
+    $p  = $dom.at('p');
+
+    # Short notation
+    @ps = $dom('p');
+    $p  = $dom('p', :one);
+
+Use whichever you prefer.
+
+=head2 method duplicate
+
+    method duplicate(@items, &dup) returns DOM::Tiny:D
+
+This performs a complicated operation that is useful when you want to loop over several stash values and duplicate some part of your DOM using variants. Here's a simple example to illustrate:
+
+    $dom.at('li').duplicate([ 1, 2, 3 ], -> $li, $number {
+        $li.content($number);
+    });
+
+If our source started out as:
+
+    <ul>
+        <li>demo</li>
+    </ul>
+
+It would now rea:
+
+    <ul>
+        <li>1</li>
+        <li>2</li>
+        <li>3</li>
+    </ul>
 
 =end pod
-
-# class Template::Anti {
-#
-#     #| Use a string as the XML source.
-#     multi method load(Str $source) {
-#         my $template = from-xml($source);
-#         return Template::Anti::Template.new(:$template);
-#
-#         CATCH {
-#             when 'could not parse XML' {
-#                 die "Input templates must be valid XML documents.";
-#             }
-#         }
-#     }
-#
-#     #| Use a filename as the XML source.
-#     multi method load(IO::Path $file) {
-#         my $template = from-xml-file($file.Str); # .Str is silliness
-#         return Template::Anti::Template.new(:$template);
-#
-#         CATCH {
-#             when 'could not parse XML' {
-#                 die "Input templates must be valid XML documents.";
-#             }
-#         }
-#     }
-#
-#     #| Use a file handle as the XML source.
-#     multi method load(IO $stream) {
-#         my $template = from-xml-stream($stream);
-#         return Template::Anti::Template.new(:$template);
-#
-#         CATCH {
-#             when 'could not parse XML' {
-#                 die "Input templates must be valid XML documents.";
-#             }
-#         }
-#     }
-#
-#     #| Use an existing XML object as the XML source (cloned to avoid changing an original).
-#     multi method load(XML::Node $xml) {
-#         my $template = $xml.cloneNode;
-#         return Template::Anti::Template.new(:$template);
-#
-#         CATCH {
-#             when 'could not parse XML' {
-#                 die "Input templates must be valid XML documents.";
-#             }
-#         }
-#     }
-#
-#     #! Grab the template from another Template object (cloned to avoid changing that template object's template).
-#     multi method load(Template::Anti::Template $tmpl) {
-#         my $template = $tmpl.template.cloneNode;
-#         return Template::Anti::Template.new(:$template);
-#
-#         CATCH {
-#             when 'could not parse XML' {
-#                 die "Input templates must be valid XML documents.";
-#             }
-#         }
-#     }
-# }
 
 my class Template::Anti::DOM::Tiny is DOM::Tiny {
     multi method CALL-ME($selector) {
@@ -353,7 +346,6 @@ While this library has been built using L<DOM::Tiny> to implement XML and HTML p
                     }
 
                     method Str { $.source }
-                    method gist { $.source }
                 }.new(:$source);
             }
 
@@ -413,5 +405,7 @@ Or if you want to use the embedded version:
 And there you go. You can get code separated from your templates in any format you like.
 
 If your format object does not have an C<embedded-source> method defined, attempting to us the embedded form of C<template> will result in an exception.
+
+Finally, whatever object is used as the parsed structure for your template (i.e., takes the place of the L<DOM::Tiny> object provided with the built-in "xml" and "html" formats) must supply a C<Str> method to render the object to string.
 
 =end pod
