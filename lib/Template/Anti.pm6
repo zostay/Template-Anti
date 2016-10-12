@@ -1,3 +1,5 @@
+unit module Template::Anti;
+
 use v6;
 
 use DOM::Tiny;
@@ -10,51 +12,17 @@ use DOM::Tiny;
 
     use Template::Anti;
 
-    my $source = q:to/END_OF_SOURCE/;
-    <html><head><title>Hello World</title></head>
-    <body>
-        <h1>Hello World</h1>
-        <ul class="people">
-            <li><a href="/person1'>Alice</a></li>
-            <li><a href="/person2'>Bob</a></li>
-            <li><a href="/person3'>Charlie</a></li>
-        </ul>
-    </body></html>
-    END_OF_SOURCE
+    class MyApp::View {
+        has $.token; # custom attributes, if you want them
 
-    my &hello = template :$source, -> $dom, $_ {
-        $dom('title, h1')».content(.<title>);
-        $dom('h1')».attr(title => .<motto>);
-        $dom('ul.people li:not(:first-child)')».remove;
-        $dom('ul.people li:first-child', :one)\
-            .duplicate(.<sith-lords>, -> $item, $_ {
-                $item('a', :one).content(.<name>).attr(href => .<url>);
-            });
-    }
+        method hello($dom, :$title, :$welcome-message) is anti-template(:source<welcome.html>) {
+            $dom('title', :one).content($title);
+            $dom('.welcome-message', :one).content($welcome-message);
+            $dom('input#api_token', :one).val($!token);
+        }
 
-    # Render the output:
-    print hello(
-        title      => 'Sith Lords',
-        motto      => 'The Force shall free me.',
-        sith-lords => [
-            { name => 'Vader',   url => 'http://example.com/vader' },
-            { name => 'Sidious', url => 'http://example.com/sidious' },
-        ],
-    );
-
-    # Or if you must mix your code and presentation, you can embed the rules
-    # within a <script/> tag in the source, which is still better than mixing it
-    # all over your HTML:
-    my $emb-source = q:to/END_OF_SOURCE/;
-    <html><head><title>Hello World</title></head>
-    <body>
-        <h1>Hello World</h1>
-        <ul class="people">
-            <li><a href="/person1">Alice</a></li>
-            <li><a href="/person2">Bob</a></li>
-            <li><a href="/person3">Charlie</a></li>
-        </ul>
-        <script type="application/anti+perl6" data-dom="$dom">
+        method sith($dom, $_) is anti-template(:source<people.html>) {
+            $dom('input#api_token', :one).val($!token);
             $dom('title, h1')».content(.<title>);
             $dom('h1')».attr(title => .<motto>);
             $dom('ul.people li:not(:first-child)')».remove;
@@ -62,12 +30,20 @@ use DOM::Tiny;
                 .duplicate(.<sith-lords>, -> $item, $_ {
                     $item('a', :one).content(.<name>).attr(href => .<url>);
                 });
-        </script>
-    </body></html>
-    END_OF_SOURCE
+        }
+    }
 
-    my &hello-again = template :source($emb-source), :html, :embedded;
-    print hello-again(%vars);
+    # The source files are just plain old HTML. Nothing special about them.
+
+    my $library = Template::Anti::Library.new(
+        path  => </var/myapp/template-root/ /var/myapp/other-template-root/>,
+        views => {
+            main => MyApp::View.new(:token<secret>),
+        },
+    );
+
+    say $library.process('main/hello', :title<Hello World>, :welcome-message<Welcome!>);
+    say $library.process('main/site', %sith-lords);
 
 =end SYNOPSIS
 
@@ -118,7 +94,7 @@ create a template and then apply a set of rules and node-set modifications, like
 this:
 
     my $source = 'index.html'.IO.slurp;
-    my &index = template(:$source, -> $dom, $data {
+    my &index = anti-template(:$source, -> $dom, $data {
         $dom('title')».content($data<title>);
     });
     say index(:title<Star Wars>);
@@ -155,18 +131,20 @@ This works whether the template is HTML or XML. However, when templating with XM
 To process this template, you can run something like this:
 
     my $source = 'index.html'.IO.slurp;
-    my &index = template(:$source);
+    my &index = anti-template(:$source);
     say index(:title<Star Wars>);
 
-If no code reference is passed to C<template>, Template::Anti will attempt to find script tags in the markup itself.
+If no code reference is passed to C<anti-template>, Template::Anti will attempt to find script tags in the markup itself.
 
 =head1 Exported Routines
 
-=head2 sub template
+=head2 sub anti-template
 
-    sub template(&process?, Str:D :$source!, Str:D :$format = 'html') returns Routine:D
+    sub anti-template(&process?, Str:D :$source!, Str:D :$format = 'html') returns Routine:D
 
 This routine builds a template routine and returns it. The returned routine completely encapsulates the processing of the template.
+
+See L</One-off Templates> for a fully example of this routine in action.
 
 The C<&process> is optional. When given, it names the routine to call to transform a template source and stash into a final version of the template source. If not given, it is assumed that any processing will be embedded within the template. When given, it must have a signature like the following:
 
@@ -176,7 +154,7 @@ The return value of this method is ignored and it should modify the C<$dom> obje
 
 The C<$source> is required and contains the complete contents of the template source. For HTML, this would be a regular HTML file. For XML, it would be a regular XML file, etc.
 
-The C<$format> tells the C<template> method which format the file is in and how to parse and process it. Template::Anti provides two built-in formats, "html" and "xml", both use a slightly extended L<DOM::Tiny> to parse and process the file. Custom formats can also be crafted. See L</Advanced Formats>.
+The C<$format> tells the C<anti-template> routine which format the file is in and how to parse and process it. Template::Anti provides two built-in formats, "html" and "xml", both use a slightly extended L<DOM::Tiny> to parse and process the file. Custom formats can also be crafted. See L</Advanced Formats>.
 
 The format also determines how to extract embedded templates. In the case of "xml" and "html", the embedding is handled via C«<script>» tags that have the type set to "application/anti+perl6". These actually support the use of multiple C«<script>» tags, which are process in order they appear in the file, each getting it's own C<data-dom> and C<data-stash> settings (see L</Inline Processing>).
 
@@ -186,10 +164,10 @@ The returned routine will have the following signature:
 
 When called with a stash, that stash will be passed into the C<&process> method (or embedded equivalent). Once C<&process> has been called, the template object (C<$dom> in the signature above), will be stringified by calling the C<Str> method on it. That value is returned.
 
-=head2 multi get-format-object
+=head2 multi get-anti-format-object
 
-    multi get-format-object('html')
-    multi get-format-object('xml')
+    multi get-anti-format-object('html')
+    multi get-anti-format-object('xml')
 
 These each return a format object that will parse the source using a slightly extended version of L<DOM::Tiny> and return it. They will also extract embedded processing code from C«<script>» tags in the source.
 
@@ -242,7 +220,7 @@ It would now rea:
 
 =end pod
 
-my class Template::Anti::DOM::Tiny is DOM::Tiny {
+my class DOM is DOM::Tiny {
     multi method CALL-ME($selector) {
         self.find($selector);
     }
@@ -253,7 +231,7 @@ my class Template::Anti::DOM::Tiny is DOM::Tiny {
     multi method duplicate(@items, &dup) {
         my $orig = self.render;
         self.append([~] gather for @items -> $item {
-            my $copy = Template::Anti::DOM::Tiny.parse($orig, :xml(self.xml));
+            my $copy = DOM.parse($orig, :xml(self.xml));
             dup($copy, $item);
             take $copy;
         });
@@ -262,9 +240,9 @@ my class Template::Anti::DOM::Tiny is DOM::Tiny {
     }
 }
 
-my class Template::Anti::Format::DOM::Tiny {
+my class Format::DOM {
     method parse($source) {
-        Template::Anti::DOM::Tiny.parse($source)
+        DOM.parse($source)
     }
     method embedded-source($dom) {
         my @codes = gather for $dom.find('script[type="application/anti+perl6"]') -> $script {
@@ -277,15 +255,15 @@ my class Template::Anti::Format::DOM::Tiny {
             $script.remove;
         }
 
-        sub ($dom, $stash) {
-            @codes».($dom, $stash);
+        sub ($dom, |c) {
+            @codes».($dom, c);
         }
     }
 }
 
-proto sub get-format-object(|) { * }
-multi sub get-format-object('html') is export { Template::Anti::Format::DOM::Tiny }
-multi sub get-format-object('xml') is export { Template::Anti::Format::DOM::Tiny }
+proto sub get-anti-format-object(|) { * }
+multi sub get-anti-format-object('html') is export(:MANDATORY) { Format::DOM }
+multi sub get-anti-format-object('xml') is export(:MANDATORY) { Format::DOM }
 
 my sub grab-format($format) {
     CATCH {
@@ -294,47 +272,213 @@ my sub grab-format($format) {
         }
     }
 
-    get-format-object($format);
-}
-
-proto sub template(|) { * }
-multi sub template(&process, Str:D :$source!, Str:D :$format = 'html') returns Routine:D is export {
-    my $format-object = grab-format($format);
+    my $format-object = get-anti-format-object($format);
 
     die qq[no format type named "$format" is defined]
          unless $format-object.^can('parse');
 
+    $format-object;
+}
+
+my sub build-anti-template($format, $source, :$embed, :&process is copy, :$method) {
+    my $format-object = grab-format($format);
     my $struct = $format-object.parse($source);
 
-    sub (*%vars) {
-        process($struct, %vars);
+    if $embed {
+        die qq[embedded anti-templates are not available for source formatted as "$format"]
+            unless $format-object.^can('embedded-source');
+
+        &process = $format-object.embedded-source($struct);
+    }
+
+    if $method {
+        &process.wrap(method (*%vars) {
+            callwith($struct, %vars);
+            ~$struct;
+        });
+    }
+    else {
+        &process.wrap(sub (*%vars) {
+            callwith($struct, %vars);
+            ~$struct;
+        });
+    }
+}
+
+proto sub anti-template(|) { * }
+multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html') returns Routine:D is export(:one-off) {
+    my $format-object = grab-format($format);
+    my $struct = $format-object.parse($source);
+
+    sub (|c) {
+        process($struct, |c);
         ~$struct;
     }
 }
 
-multi sub template(Str:D :$source!, Str:D :$format = 'html') returns Routine:D is export {
+multi sub anti-template(Str:D :$source!, Str:D :$format = 'html') returns Routine:D is export(:one-off) {
     my $format-object = grab-format($format);
-
     my $struct = $format-object.parse($source);
 
-    die qq[embedded templates are not available for source formatted as "$format"]
+    die qq[embedded anti-templates are not available for source formatted as "$format"]
         unless $format-object.^can('embedded-source');
 
     my &process = $format-object.embedded-source($struct);
 
-    sub (*%vars) {
-        process($struct, %vars);
+    sub (|c) {
+        process($struct, |c);
         ~$struct;
     }
 }
 
+class Library {
+    has @.path;
+    has %.views;
+    has %.template-cache;
+
+    method locate(Library:D: Str $template) {
+        for @.path -> $search-path {
+            my $try-file = $search-path.IO.child($template);
+            return $try-file if $try-file ~~ :f;
+        }
+
+        die qq[no template source file named "$template" found];
+    }
+
+    method slurp(Library:D: Str $template) {
+        self.locate-anti-template($template).slurp;
+    }
+
+    method build(Library:D: Str $template) {
+        my ($view, $method) = split $template, '/', 2;
+
+        with %!views{$view} -> $obj {
+            with $obj.^can($method) -> $r {
+                my $format = $r.format;
+                my $source = self.slurp($r.source-file);
+
+                if $r.embedded {
+                    return anti-template(:$source, :$format);
+                }
+                else {
+                    return anti-template($r, :$source, :$format);
+                }
+            }
+            else {
+                die qq[no view method named "$method"];
+            }
+        }
+        else {
+            die qq[no view named "$view"];
+        }
+    }
+
+    method process(Library:D: Str $template, **@stash) {
+        %!template-cache{$template} //= self.build($template);
+        my &process = %!template-cache{$template};
+        process(|@stash);
+    }
+}
+
+role TemplateProcessor {
+    has Str $.format = 'html';
+    has Str $.source-file;
+
+    method embedded { $.yada }
+}
+
+multi trait_mod:<is> (Routine $r, :$anti-template!) {
+    my ($format, $source-file);
+    given $anti-template {
+        when Associative {
+            $format      = $anti-template<format> // 'html';
+            $source-file = $anti-template<source>;
+        }
+        when Str {
+            $format      = $anti-template;
+            $source-file = $r.name;
+        }
+        default {
+            $format      = 'html';
+            $source-file = $r.name;
+        }
+    }
+
+    $r but TemplateProcessor.new(:$format, :$source-file);
+}
+
 =begin pod
+
+=head1 One-Off Templates
+
+If you just need a quick template and don't need to worry about building a complete L</Template Library>, there is also a mechanism for creating one-off template routines. This requires using the C<anti-template> routine, which is exported when the C<:one-off> flag is passed during import. (Without this flag, you can still access these routines via C<Template::Anti::anti-template>).
+
+    use Template::Anti :one-off;
+
+    my $source = q:to/END_OF_SOURCE/;
+    <html><head><title>Hello World</title></head>
+    <body>
+        <h1>Hello World</h1>
+        <ul class="people">
+            <li><a href="/person1'>Alice</a></li>
+            <li><a href="/person2'>Bob</a></li>
+            <li><a href="/person3'>Charlie</a></li>
+        </ul>
+    </body></html>
+    END_OF_SOURCE
+
+    my &hello = anti-template :$source, -> $dom, $_ {
+        $dom('title, h1')».content(.<title>);
+        $dom('h1')».attr(title => .<motto>);
+        $dom('ul.people li:not(:first-child)')».remove;
+        $dom('ul.people li:first-child', :one)\
+            .duplicate(.<sith-lords>, -> $item, $_ {
+                $item('a', :one).content(.<name>).attr(href => .<url>);
+            });
+    }
+
+    # Render the output:
+    print hello(
+        title      => 'Sith Lords',
+        motto      => 'The Force shall free me.',
+        sith-lords => [
+            { name => 'Vader',   url => 'http://example.com/vader' },
+            { name => 'Sidious', url => 'http://example.com/sidious' },
+        ],
+    );
+
+    # Or if you must mix your code and presentation, you can embed the rules
+    # within a <script/> tag in the source, which is still better than mixing it
+    # all over your HTML:
+    my $emb-source = q:to/END_OF_SOURCE/;
+    <html><head><title>Hello World</title></head>
+    <body>
+        <h1>Hello World</h1>
+        <ul class="people">
+            <li><a href="/person1">Alice</a></li>
+            <li><a href="/person2">Bob</a></li>
+            <li><a href="/person3">Charlie</a></li>
+        </ul>
+        <script type="application/anti+perl6" data-dom="$dom">
+            $dom('title, h1')».content(.<title>);
+            $dom('h1')».attr(title => .<motto>);
+            $dom('ul.people li:not(:first-child)')».remove;
+            $dom('ul.people li:first-child', :one)\
+                .duplicate(.<sith-lords>, -> $item, $_ {
+                    $item('a', :one).content(.<name>).attr(href => .<url>);
+                });
+        </script>
+    </body></html>
+    END_OF_SOURCE
+
+    my &hello-again = anti-template :source($emb-source), :html, :embedded;
+    print hello-again(%vars);
 
 =head1 Advanced Formats
 
-While this library has been built using L<DOM::Tiny> to implement XML and HTML parsing and rendering of template sources, it is possible to extend Template::Anti to support parsing sources in any other format. To do this, you need to define a custom C<multi sub> named C<get-format-object> in your code. For example, here is one built with a couple anonymous classes that will work with plain text files that contain specially formatted blanks.
+While this library has been built using L<DOM::Tiny> to implement XML and HTML parsing and rendering of template sources, it is possible to extend Template::Anti to support parsing sources in any other format. To do this, you need to define a custom C<multi sub> named C<get-anti-format-object> in your code. For example, here is one built with a couple anonymous classes that will work with plain text files that contain specially formatted blanks.
 
-    multi sub get-format-object('blanktext') {
+    multi sub get-anti-format-object('blanktext') {
         class {
             method parse($source) {
                 class {
@@ -375,7 +519,7 @@ This also adds support for embedding the code part of the template in the source
     _dark-lord_
     END_OF_EMAIL;
 
-    my &hello = template :$source, -> $email, %data {
+    my &hello = anti-template :$source, -> $email, %data {
         $email.set($var, %data{ $var }) for <name dark-lord>;
     };
     say hello(:name<Starkiller>, :dark-lord<Darth Vader>);
@@ -399,12 +543,12 @@ Or if you want to use the embedded version:
     }
     END_OF_EMAIL;
 
-    my &hello = template :$source;
+    my &hello = anti-template :$source;
     say hello(:name<Starkiller>, :dark-lord<Darth Vader>);
 
-And there you go. You can get code separated from your templates in any format you like.
+And there you go. You can get code separated from your templates in any format you like. You can use them in a L<Template Library> too.
 
-If your format object does not have an C<embedded-source> method defined, attempting to us the embedded form of C<template> will result in an exception.
+If your format object does not have an C<embedded-source> method defined, attempting to us the embedded form of C<anti-template> will result in an exception.
 
 Finally, whatever object is used as the parsed structure for your template (i.e., takes the place of the L<DOM::Tiny> object provided with the built-in "xml" and "html" formats) must supply a C<Str> method to render the object to string.
 

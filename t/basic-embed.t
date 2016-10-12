@@ -3,9 +3,9 @@
 use v6;
 
 use Test;
-use Template::Anti;
+use Template::Anti :one-off;
 
-my &people = template :source("t/basic-embed.html".IO.slurp);
+my &people = anti-template :source("t/basic-embed.html".IO.slurp);
 my $output = people(
     title => 'Sith Lords',
     motto => 'The Force shall free me.',
