@@ -244,19 +244,27 @@ my class Format::DOM {
     method parse($source) {
         DOM.parse($source)
     }
-    method embedded-source($dom) {
+    method embedded-source($dom, :$method) {
+        my $routine = $method ?? 'method' !! 'sub';
         my @codes = gather for $dom.find('script[type="application/anti+perl6"]') -> $script {
             my $dom   = $script.attr('data-dom')   // '$dom';
             my $stash = $script.attr('data-stash') // '$_';
 
             use MONKEY-SEE-NO-EVAL;
-            take EVAL "sub ($dom, $stash) \{ {$script.content} }";
+            take EVAL "$routine ($dom, $stash) \{ {$script.content} }";
 
             $script.remove;
         }
 
-        sub ($dom, |c) {
-            @codes».($dom, c);
+        if $method {
+            method ($dom, |c) {
+                @codes».(self, $dom, c);
+            }
+        }
+        else {
+            sub ($dom, |c) {
+                @codes».($dom, c);
+            }
         }
     }
 }
@@ -288,7 +296,7 @@ my sub build-anti-template($format, $source, :$embed, :&process is copy, :$metho
         die qq[embedded anti-templates are not available for source formatted as "$format"]
             unless $format-object.^can('embedded-source');
 
-        &process = $format-object.embedded-source($struct);
+        &process = $format-object.embedded-source($struct, :$method);
     }
 
     if $method {
@@ -306,28 +314,45 @@ my sub build-anti-template($format, $source, :$embed, :&process is copy, :$metho
 }
 
 proto sub anti-template(|) { * }
-multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html') returns Routine:D is export(:one-off) {
+multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
     my $format-object = grab-format($format);
     my $struct = $format-object.parse($source);
 
-    sub (|c) {
-        process($struct, |c);
-        ~$struct;
+    with $object {
+        sub (|c) {
+            $object.&process($struct, |c);
+            ~$struct;
+        }
+    }
+    else {
+        sub (|c) {
+            process($struct, |c);
+            ~$struct;
+        }
     }
 }
 
-multi sub anti-template(Str:D :$source!, Str:D :$format = 'html') returns Routine:D is export(:one-off) {
+multi sub anti-template(Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
     my $format-object = grab-format($format);
     my $struct = $format-object.parse($source);
 
     die qq[embedded anti-templates are not available for source formatted as "$format"]
         unless $format-object.^can('embedded-source');
 
-    my &process = $format-object.embedded-source($struct);
+    my $method = defined $object;
+    my &process = $format-object.embedded-source($struct, :$method);
 
-    sub (|c) {
-        process($struct, |c);
-        ~$struct;
+    with $object {
+        sub (|c) {
+            $object.&process($struct, |c);
+            ~$struct;
+        }
+    }
+    else {
+        sub (|c) {
+            process($struct, |c);
+            ~$struct;
+        }
     }
 }
 
@@ -346,22 +371,22 @@ class Library {
     }
 
     method slurp(Library:D: Str $template) {
-        self.locate-anti-template($template).slurp;
+        self.locate($template).slurp;
     }
 
     method build(Library:D: Str $template) {
-        my ($view, $method) = split $template, '/', 2;
+        my ($view, $method) = $template.split: '/', 2;
 
-        with %!views{$view} -> $obj {
-            with $obj.^can($method) -> $r {
+        with %!views{$view} -> $object {
+            with $object.^find_method($method) -> $r {
                 my $format = $r.format;
                 my $source = self.slurp($r.source-file);
 
                 if $r.embedded {
-                    return anti-template(:$source, :$format);
+                    return anti-template(:$source, :$format, :$object);
                 }
                 else {
-                    return anti-template($r, :$source, :$format);
+                    return anti-template($r, :$source, :$format, :$object);
                 }
             }
             else {
@@ -373,21 +398,21 @@ class Library {
         }
     }
 
-    method process(Library:D: Str $template, **@stash) {
+    method process(Library:D: Str $template, |c) {
         %!template-cache{$template} //= self.build($template);
         my &process = %!template-cache{$template};
-        process(|@stash);
+        process(|c);
     }
 }
 
-role TemplateProcessor {
-    has Str $.format = 'html';
-    has Str $.source-file;
+role Process[$format, $source-file] {
+    has Str $.format = $format;
+    has Str $.source-file = $source-file;
 
     method embedded { $.yada }
 }
 
-multi trait_mod:<is> (Routine $r, :$anti-template!) {
+multi trait_mod:<is> (Routine $r, :$anti-template!) is export(:MANDATORY) {
     my ($format, $source-file);
     given $anti-template {
         when Associative {
@@ -404,7 +429,7 @@ multi trait_mod:<is> (Routine $r, :$anti-template!) {
         }
     }
 
-    $r but TemplateProcessor.new(:$format, :$source-file);
+    $r does Process[$format, $source-file]
 }
 
 =begin pod
