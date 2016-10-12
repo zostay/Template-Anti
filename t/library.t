@@ -56,3 +56,5 @@ my $lib = Template::Anti::Library.new(
 
     is "$output\n", "t/basic.out".IO.slurp, 'output is as expected';
 }
+
+done-testing;
