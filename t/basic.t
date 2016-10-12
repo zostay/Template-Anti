@@ -5,7 +5,7 @@ use v6;
 use Test;
 use Template::Anti :one-off;
 
-my &people = anti-template :source("t/basic.html".IO.slurp), -> $at, :$title, :$motto, :@sith-lords {
+my &people = anti-template :source("t/view/basic.html".IO.slurp), -> $at, :$title, :$motto, :@sith-lords {
     $at('title, h1')».content($title);
     $at('h1')».attr(title => $motto);
     $at('ul.people li:not(:first-child)')».remove;
