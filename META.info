@@ -1,17 +1,11 @@
 {
     "name" : "Template::Anti",
-    "version" : "0.1",
+    "version" : "0.2",
     "description" : "The anti-template templating tool.",
     "authors" : [ "Sterling Hanenkamp <hanenkamp@cpan.org>" ],
     "provides" : {
         "Template::Anti": "lib/Template/Anti.pm6",
-        "Template::Anti::Template": "lib/Template/Anti/Template.pm6",
-        "Template::Anti::NodeSet": "lib/Template/Anti/NodeSet.pm6",
-        "Template::Anti::Selector::NodeSet": "lib/Template/Anti/Selector.pm6",
-        "Template::Anti::Selector::NodeWalker": "lib/Template/Anti/Selector.pm6",
-        "Template::Anti::Selector::Grammar": "lib/Template/Anti/Selector.pm6",
-        "Template::Anti::Selector::Actions": "lib/Template/Anti/Selector.pm6",
-        "Template::Anti::Selector": "lib/Template/Anti/Selector.pm6"
+        "Template::Anti::Library": "lib/Template/Anti.pm6"
     },
     "depends" : [ "DOM::Tiny" ],
     "source-url" : "git://github.com/zostay/Template-Anti.git",

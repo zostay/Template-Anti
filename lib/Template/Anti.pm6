@@ -1,4 +1,4 @@
-unit module Template::Anti;
+unit module Template::Anti:ver<0.2>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
 
 use v6;
 
@@ -225,6 +225,28 @@ period ("."). The first name is name given to the L</method views> parameter.
 The second is the name of the processing method to call on that object.
 
 =head1 Exported Routines
+
+=head2 trait is anti-template
+
+    sub trait_mod:<is> (Routine $r, :$anti-template)
+
+This marks a method as being a Template::Anti processing method. It takes two named arguments.
+
+    method tmpl($dom, *%stash) is anti-template(
+        :source<file.html>,
+        :format<html>,
+    ) { ... }
+
+The C<:source> is the name of the file to load. The location of the file is
+relatives to the paths set on the C<path> attribute on
+L</Template::Anti::Library>.
+
+The C<:format> is the format to use, usually "html" or "xml" unless you have
+defined your own custom formats.
+
+A method declared with this trait that is a yada-method (i.e., it has no code in
+the block, just a yada (...), will cause Template::Anti to assume that the code
+is embedded within the original source file named in C<:source>.
 
 =head2 multi get-anti-format-object
 

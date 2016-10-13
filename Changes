@@ -1,0 +1,10 @@
+v0.2
+
+    * Complete rewrite.
+    * Uses DOM::Tiny now rather than XML.
+    * Structures the templates into libraries of templates.
+    * Provides some basic facilities for locating original source files.
+
+v0.1
+
+    * Initial experimental release.
