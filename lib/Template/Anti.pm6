@@ -21,29 +21,35 @@ use DOM::Tiny;
             $dom('input#api_token', :one).val($!token);
         }
 
+        # Or put the logic into people.html:
+        # <script type="application/anti+perl6">
+        #   $dom('input#api_token', :one).val($!token);
+        #   $dom('title, h1')».content(.<title>);
+        #   $dom('h1')».attr(title => .<motto>);
+        #   $dom('ul.people li:not(:first-child)')».remove;
+        #   $dom('ul.people li:first-child', :one)\
+        #       .duplicate(.<sith-lords>, -> $item, $_ {
+        #           $item('a', :one).content(.<name>).attr(href => .<url>);
+        #       });
+        # </script>
         method sith($dom, $_) is anti-template(:source<people.html>) {
-            $dom('input#api_token', :one).val($!token);
-            $dom('title, h1')».content(.<title>);
-            $dom('h1')».attr(title => .<motto>);
-            $dom('ul.people li:not(:first-child)')».remove;
-            $dom('ul.people li:first-child', :one)\
-                .duplicate(.<sith-lords>, -> $item, $_ {
-                    $item('a', :one).content(.<name>).attr(href => .<url>);
-                });
+            ... # yada signals embedded logic
         }
     }
 
     # The source files are just plain old HTML. Nothing special about them.
 
-    my $library = Template::Anti::Library.new(
+    # Construct a library of templates
+    my $ta = Template::Anti::Library.new(
         path  => </var/myapp/template-root/ /var/myapp/other-template-root/>,
         views => {
             main => MyApp::View.new(:token<secret>),
         },
     );
 
-    say $library.process('main/hello', :title<Hello World>, :welcome-message<Welcome!>);
-    say $library.process('main/site', %sith-lords);
+    # Use .process() to render the templates with input
+    say $ta.process('main.hello', :title<Hello World>, :welcome-message<Welcome!>);
+    say $ta.process('main.site', %sith-lords);
 
 =end SYNOPSIS
 
@@ -56,7 +62,7 @@ templating engine, which does that very thing. Rather than building a file that
 is either some nice programming language like Perl 6 or a decent document
 language like HTML5, she ends up with some evil hybrid that:
 
-=item Confuses tools made to read either (or both) of those languages,
+=item Confuses tools made to read either of those languages,
 
 =item Adds training overhead and burdensome syntax for your front-end developers to work around,
 
@@ -64,11 +70,11 @@ language like HTML5, she ends up with some evil hybrid that:
 
 This "templating" engine allows you to put an end to that.
 
-This module, L<Template::Anti>, is the anti-templating engine. This library
-splits your presentation from your code in a way that is familiar to many
-front-end developers, using a select-and-modify methodology similar to jQuery.
+This module, L<Template::Anti>, is the anti-templating engine. This tool splits
+your presentation from your code in a way that is familiar to many front-end
+developers, using a select-and-modify methodology similar to jQuery.
 
-It borrows ideas from tools like
+It borrows a few ideas from tools like
 L<Template::Pure|https://metacpan.org/pod/HTML::Zoom>,
 L<Template::Semantic|https://metacpan.org/pod/Template::Semantic>, and
 L<pure.js|https://beebole.com/pure/>.
@@ -79,36 +85,47 @@ L<pure.js|https://beebole.com/pure/>.
 
 To build a template you need two components:
 
-=item 1. You need some HTML or XML source to work with.
+=item You need some HTML or XML source to work with.
 
-=item 2. You need a block of code to execute against the parsed representation of that source.
+=item You need a block of code to execute against the parsed representation of that source.
 
-There are two different ways to process your templates, inline and out-of-line.
-Let's consider the latter first.
+From there, Template::Anti provides two different ways to process your
+templates, inline (a.k.a. embedded) and out-of-line.  Let's consider the latter
+first.
 
 =head2 Out-of-Line Processing
 
-This is the pure use-case that completely separates your template from your view
-processor, which maximizes reuse. It works like the L</SYNOPSIS> where you
-create a template and then apply a set of rules and node-set modifications, like
-this:
+This is the "pure" use-case that completely separates your template from your
+view processor, which should maximize reuse for most applications. To do this,
+you create an HTML original and then a method to apply a set of rules and
+modifications to it, like this:
 
-    my $source = 'index.html'.IO.slurp;
-    my &index = anti-template(:$source, -> $dom, $data {
-        $dom('title')».content($data<title>);
-    });
-    say index(:title<Star Wars>);
+    class MyTemplate {
+        method index($dom, :$title) is anti-template(:source<index.html>) {
+            $dom('title')».content($title);
+        }
+    }
 
-This is generally the preferred way of using this module.
+The C<is anti-template> trait associates a source file name with your method.
+When it comes time to process the template, this will be found within the search
+paths setup in L</Template::Anti::Library>. The trait takes two optional named
+parameters:
+
+=item The C<source> parameter will name the original file to associate with this processing method.
+
+=item The C<format> parameter names the format to use when parsing the original. It defaults to "html" but may be set to "xml" instead.
+
+The first positional argument to the method will always be the DOM object parsed
+from the original source file. The remaining parameters are whatever you want to
+pass to your views.
 
 =head2 Inline Processing
 
-However, it may be convenient to keep your processing code with the template
-itself. It would still be appalling to mix template code with code willy-nilly,
-but HTML provides a reasonable interface for embedded scripting. Therefore, if
-your template contains one or more C«<script></script>» tags formatted properly,
-you may use this style instead. For example, here is a simple template you might
-have in your assets folder:
+At times, it may be convenient to keep your processing code within the original
+file. In this case, your original file will include zero or more
+C«<script></script>» blocks with the type attribute set to
+"application/anti+perl6". For example, here is a simple template you might have
+in your assets directory:
 
     <html>
         <head>
@@ -122,47 +139,92 @@ have in your assets folder:
         </body>
     </html>
 
-Both the C<type="application/anti+perl6"> is required. The C<data-dom> and C<data-stash> attributes are optional. These attributes the names of the template variables the engine will provide to the block.
+The C<type="application/anti+perl6"> attirbute is required. The C<data-dom> and
+C<data-stash> attributes are optional. These attributes the names of the
+template variables the engine will provide to the block.
 
-The C<data-dom> names the variable to use for the DOM representation, which will already have the C<script> tag stripped. The default C<data-dom> name is C<"$dom">. The C<data-stash> attribute names the variable to use for the data stash passed in when running the template. The default C<data-stash> name is C<"$_">.
+The C<data-dom> names the variable to use for the DOM representation within the
+script-tag. (The DOM will be provided without these script-tags present.) The
+default C<data-dom> name is C<"$dom">.
 
-This works whether the template is HTML or XML. However, when templating with XML, it is also recommended that you wrap your code in a C«<![CDATA[ ]]>» section to avoid problems with greater than signs (">"), less than signs ("<"), and ampersands in your code confusing the parser.
+The C<data-stash> attribute names the variable to use for the remaining captured
+arguments. The default C<data-stash> name is C<"$_">. It is up to the code
+within the script-tag to handle any further argument handling.
 
-To process this template, you can run something like this:
+This works whether the template is HTML or XML. However, when templating with
+XML, it is also recommended that you wrap your code in a C«<![CDATA[ ]]>»
+section to avoid problems with greater than signs (">"), less than signs ("<"),
+and ampersands in your code confusing the parser.
 
-    my $source = 'index.html'.IO.slurp;
-    my &index = anti-template(:$source);
-    say index(:title<Star Wars>);
+Finally, the processing method for this template looks like the following:
 
-If no code reference is passed to C<anti-template>, Template::Anti will attempt to find script tags in the markup itself.
+    class MyTemplate {
+        method index(|) is anti-template(:source<index.html>) {
+            ...
+        }
+    }
+
+The yada (...) signals that this the method logic will be filled in by scripts
+embedded within the original. The capture bar (|) is shown here because the
+method itself is just a placeholder and won't actually be called or used. The
+arguments you set here do not matter at all, so it is recommended you leave them
+blank in whichever way you prefer.
+
+=head1 Template::Anti::Library
+
+This class provides tools for locating original source files for parsing and for grouping your processing methods together. You do not have to use it. If you only need a single template or want to provide your own mechanism for locating and reading the files and calling the templates, see L</One-off Templates> for details.
+
+=head2 method path
+
+    method path() returns Array:D
+
+This is the accessor for the paths set when Template::Anti::Library is
+constructed.
+
+    my $ta = Template::Anti::Library.new(
+        path => </var/www /var/www2>,
+        ...
+    );
+
+These paths name the directories that are searched when locating an original
+source file.
+
+=head2 method views
+
+    method views() returns Hash:D
+
+This is the accessor for the views set when Template::Anti::Library is
+constructed.
+
+    my $ta = Template::Anti::Library.new(
+        views => {
+            user => MyApp::View::User.new,
+            page => MyApp::View::Page.new,
+            book => MyApp::View::Book.new,
+        },
+        ...
+    );
+
+This is a map of names to objects that each should contain one or more methods
+that have been tagged with the C<is anti-template> trait. The names are used by
+the L</method process> as part of the name used to look up the template to
+process.
+
+=head2 method process
+
+    method process(Str $template, |c) returns Str:D
+
+This is the workhorse of the system. If the named template has never been
+processed before, the source template will be located, read, and parsed
+according to the format for that template. This setup happens once and the
+result is then cached. It will then process the arguments passed (any arguments
+after the template name are passed as is through to the processing method).
+
+The C<$template> name itself should be composed of two names separated by a
+period ("."). The first name is name given to the L</method views> parameter.
+The second is the name of the processing method to call on that object.
 
 =head1 Exported Routines
-
-=head2 sub anti-template
-
-    sub anti-template(&process?, Str:D :$source!, Str:D :$format = 'html') returns Routine:D
-
-This routine builds a template routine and returns it. The returned routine completely encapsulates the processing of the template.
-
-See L</One-off Templates> for a fully example of this routine in action.
-
-The C<&process> is optional. When given, it names the routine to call to transform a template source and stash into a final version of the template source. If not given, it is assumed that any processing will be embedded within the template. When given, it must have a signature like the following:
-
-    sub ($dom, %stash) { ... }
-
-The return value of this method is ignored and it should modify the C<$dom> object in place. The type of that C<$dom> object depends on the value of C<$format>.
-
-The C<$source> is required and contains the complete contents of the template source. For HTML, this would be a regular HTML file. For XML, it would be a regular XML file, etc.
-
-The C<$format> tells the C<anti-template> routine which format the file is in and how to parse and process it. Template::Anti provides two built-in formats, "html" and "xml", both use a slightly extended L<DOM::Tiny> to parse and process the file. Custom formats can also be crafted. See L</Advanced Formats>.
-
-The format also determines how to extract embedded templates. In the case of "xml" and "html", the embedding is handled via C«<script>» tags that have the type set to "application/anti+perl6". These actually support the use of multiple C«<script>» tags, which are process in order they appear in the file, each getting it's own C<data-dom> and C<data-stash> settings (see L</Inline Processing>).
-
-The returned routine will have the following signature:
-
-    sub (*%stash) returns Str:D { ... }
-
-When called with a stash, that stash will be passed into the C<&process> method (or embedded equivalent). Once C<&process> has been called, the template object (C<$dom> in the signature above), will be stringified by calling the C<Str> method on it. That value is returned.
 
 =head2 multi get-anti-format-object
 
@@ -173,16 +235,72 @@ These each return a format object that will parse the source using a slightly ex
 
 New multis can be defined to extend the formats available to Template::Anti. See L</Advanced Formats> for details.
 
+These two multi implementations are always exported.
+
+=head2 sub anti-template
+
+    use Template::Anti :one-off;
+    sub anti-template(&process?, Str:D :$source!, Str:D :$format = 'html') returns Routine:D
+
+This is exported in the C<:one-off> group. This routine builds a template routine and returns it. The returned routine completely encapsulates the processing of the template.
+
+See L</One-off Templates> for a full example of this routine in action.
+
+The C<&process> is optional. When given, it names the routine to call to transform a template source and stash into a final version of the template source. If not given, it is assumed that any processing will be embedded within the template. When given, it should expect at least one positional argument, which will be the DOM object parsed from the original in C<$source>. Any remaining arguments are whatever will be passed to the returned routine.
+
+    sub ($dom, |c) { ... }
+
+The return value of this routine is ignored. It may modify the C<$dom> object in place. The type of that C<$dom> object will be a subclass of L<DOM::Tiny> when C<$format> is set to "html" and "xml".
+
+The C<$source> is required and contains the complete contents of the original file source. For "html" formats, this would be a regular HTML file. For "xml" formats, it would be a regular XML file.
+
+The C<$format> tells the C<anti-template> routine which format the file is in and how to parse and process it. Template::Anti provides two built-in formats, "html" and "xml", both use a slightly extended L<DOM::Tiny> to parse and process the file. Custom formats can also be crafted. See L</Advanced Formats>.
+
+The format also determines how to extract embedded templates. In the case of "xml" and "html", the embedding is handled via C«<script>» tags that have the type set to "application/anti+perl6". These actually support the use of multiple C«<script>» tags, which are process in order they appear in the file, each getting it's own C<data-dom> and C<data-stash> settings (see L</Inline Processing>).
+
+The returned routine will work something like this:
+
+    sub (|c) returns Str:D { ... }
+
+Here the C<|c> capture will be passed through to the C<&process> routine. Here are a few quick examples:
+
+    sub process1($dom) { ... }
+    my &process1-template = anti-template(&process1, ...);
+    say process1-template();
+
+    sub process2($dom, $user, :$title, :$name) { ... }
+    my &process2-template = anti-template(&process2, ...);
+    say process2-template(MyUser.new(0), :title<Hello>, :name<Bob>);
+
+    sub process3($dom, %stash) { ... }
+    my &process3-template = anti-template(&process3, ...);
+    say process3-template(%myapp-stash);
+
+The arguments are passed through in just that fashion.
+
+Once the C<&process> passed to C<anti-template> has been called, the template
+object (C<$dom> in the signature above), will be stringified by calling the
+C<Str> method on it. That stringified version of the value is returned.
+
 =head1 DOM::Tiny Customization
 
-Template::Anti uses a slightly customized subclass of L<DOM::Tiny> that provide a couple additional features that are useful when templating. Some or all of these might be rolled up into L<DOM::Tiny> in the future, but they are here for now:
+Template::Anti uses a slightly customized subclass of L<DOM::Tiny> that provide
+a couple additional features that are useful when processing the original source
+file. Some or all of these might be rolled up into DOM::Tiny in the future,
+but they are here for now.
+
+(It should be noted that where the signatures here show L<DOM::Tiny>, this is
+really returning the slightly extended subclass that Template::Anti provies. The
+name of that subclass is not documented because it is expected to change in the
+future.)
 
 =head2 method postcircumfix:<( )>
 
     multi method postcircumfix:<( )> ($selector) returns Seq:D
     multi method postcircumfix:<( )> ($selector, Bool :$one) returns DOM::Tiny:D
 
-This allows for a slightly shortened notation when using L<DOM::Tiny>. Basically, the following are equivalent:
+This allows for a sometimes shortened notation when using L<DOM::Tiny>.
+Basically, the following are equivalent:
 
     # Long notation
     @ps = $dom.find('p');
@@ -198,7 +316,9 @@ Use whichever you prefer.
 
     method duplicate(@items, &dup) returns DOM::Tiny:D
 
-This performs a complicated operation that is useful when you want to loop over several stash values and duplicate some part of your DOM using variants. Here's a simple example to illustrate:
+This performs a complicated operation that is useful when you want to loop over
+several stash values and duplicate some part of your DOM using variants. Here's
+a simple example to illustrate:
 
     $dom.at('li').duplicate([ 1, 2, 3 ], -> $li, $number {
         $li.content($number);
@@ -288,31 +408,6 @@ my sub grab-format($format) {
     $format-object;
 }
 
-my sub build-anti-template($format, $source, :$embed, :&process is copy, :$method) {
-    my $format-object = grab-format($format);
-    my $struct = $format-object.parse($source);
-
-    if $embed {
-        die qq[embedded anti-templates are not available for source formatted as "$format"]
-            unless $format-object.^can('embedded-source');
-
-        &process = $format-object.embedded-source($struct, :$method);
-    }
-
-    if $method {
-        &process.wrap(method (*%vars) {
-            callwith($struct, %vars);
-            ~$struct;
-        });
-    }
-    else {
-        &process.wrap(sub (*%vars) {
-            callwith($struct, %vars);
-            ~$struct;
-        });
-    }
-}
-
 proto sub anti-template(|) { * }
 multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
     my $format-object = grab-format($format);
@@ -375,7 +470,7 @@ class Library {
     }
 
     method build(Library:D: Str $template) {
-        my ($view, $method) = $template.split: '/', 2;
+        my ($view, $method) = $template.split: '.', 2;
 
         with %!views{$view} -> $object {
             with $object.^find_method($method) -> $r {
@@ -436,7 +531,10 @@ multi trait_mod:<is> (Routine $r, :$anti-template!) is export(:MANDATORY) {
 
 =head1 One-Off Templates
 
-If you just need a quick template and don't need to worry about building a complete L</Template Library>, there is also a mechanism for creating one-off template routines. This requires using the C<anti-template> routine, which is exported when the C<:one-off> flag is passed during import. (Without this flag, you can still access these routines via C<Template::Anti::anti-template>).
+If you just need a quick template and don't need to worry about building a
+complete library of methods, there is also a mechanism for creating one-off
+template routines. This requires using the C<anti-template> routine, which is
+exported when the C<:one-off> flag is passed during import.
 
     use Template::Anti :one-off;
 
@@ -501,7 +599,12 @@ If you just need a quick template and don't need to worry about building a compl
 
 =head1 Advanced Formats
 
-While this library has been built using L<DOM::Tiny> to implement XML and HTML parsing and rendering of template sources, it is possible to extend Template::Anti to support parsing sources in any other format. To do this, you need to define a custom C<multi sub> named C<get-anti-format-object> in your code. For example, here is one built with a couple anonymous classes that will work with plain text files that contain specially formatted blanks.
+While this library has been built using L<DOM::Tiny> to implement XML and HTML
+parsing and rendering of template sources, it is possible to extend
+Template::Anti to support parsing sources in any other format. To do this, you
+need to define a custom C<multi sub> named C<get-anti-format-object> in your
+code. For example, here is one built with a couple anonymous classes that will
+work with plain text files that contain specially formatted blanks.
 
     multi sub get-anti-format-object('blanktext') {
         class {
@@ -530,9 +633,12 @@ While this library has been built using L<DOM::Tiny> to implement XML and HTML p
         }
     }
 
-This also adds support for embedding the code part of the template in the source following a C<__CODE__> annotation. Here's a couple examples using this custom object:
+This also adds support for embedding the code part of the template in the source
+following a C<__CODE__> annotation. Here's a couple examples using this custom
+object.
 
-    my $source = q:to/END_OF_EMAIL/;
+In C<welcome.txt>, we could have this:
+
     Subject: Welcome _name_ to the Dark Side
 
     _name_
@@ -542,16 +648,9 @@ This also adds support for embedding the code part of the template in the source
 
     Love,
     _dark-lord_
-    END_OF_EMAIL;
 
-    my &hello = anti-template :$source, -> $email, %data {
-        $email.set($var, %data{ $var }) for <name dark-lord>;
-    };
-    say hello(:name<Starkiller>, :dark-lord<Darth Vader>);
+And in C<welcome-embedded.html>, we could have this:
 
-Or if you want to use the embedded version:
-
-    my $source = q:to/END_OF_EMAIL/;
     Subject: Welcome _name_ to the Dark Side
 
     _name_
@@ -563,18 +662,41 @@ Or if you want to use the embedded version:
     _dark-lord_
 
     __CODE__
-    sub ($email, %data) {
+    sub ($email, *%data) {
         $email.set($var, %data{ $var }) for <name dark-lord>;
     }
-    END_OF_EMAIL;
 
-    my &hello = anti-template :$source;
-    say hello(:name<Starkiller>, :dark-lord<Darth Vader>);
+And in our code, we can write this:
 
-And there you go. You can get code separated from your templates in any format you like. You can use them in a L<Template Library> too.
+    use Template::Anti;
 
-If your format object does not have an C<embedded-source> method defined, attempting to us the embedded form of C<anti-template> will result in an exception.
+    class MyEmails {
+        method hello($email, *%data) is anti-template(:source<welcome.html>) {
+            $email.set($var, %data{ $var }) for <name dark-lord>;
+        }
 
-Finally, whatever object is used as the parsed structure for your template (i.e., takes the place of the L<DOM::Tiny> object provided with the built-in "xml" and "html" formats) must supply a C<Str> method to render the object to string.
+        method hello-embedded($email, %adata) is anti-template(:source<welcome-embedded.html>) {
+            ...
+        }
+    }
+
+    my $ta = Template::Anti::Library.new(
+        path  => </var/myapp/root>,
+        views => { :email(MyEmails.new) },
+    );
+
+    say $ta.process('email.welcome', :name<Starkiller>, :dark-lord<Darth Vader>);
+    say $ta.process('email.welcome-embedded', :name<Starkiller>, :dark-lord<Darth Vader>);
+
+This way, you can get code separated from your templates in any format you like.
+
+If your format object does not have an C<embedded-source> method defined,
+attempting to us the embedded form of C<anti-template> will result in an
+exception.
+
+Finally, whatever object is used as the parsed structure for your template
+(i.e., takes the place of the L<DOM::Tiny> object provided with the built-in
+"xml" and "html" formats) must supply a C<Str> method to render the object to
+string.
 
 =end pod

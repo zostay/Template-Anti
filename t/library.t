@@ -32,7 +32,7 @@ my $lib = Template::Anti::Library.new(
 );
 
 {
-    my $output = $lib.process('testing/people-one',
+    my $output = $lib.process('testing.people-one',
         title => 'Sith Lords',
         motto => 'The Force shall free me.',
         sith-lords => [
@@ -45,7 +45,7 @@ my $lib = Template::Anti::Library.new(
 }
 
 {
-    my $output = $lib.process('testing/people-two',
+    my $output = $lib.process('testing.people-two',
         title => 'Sith Lords',
         motto => 'The Force shall free me.',
         sith-lords => [
