@@ -57,4 +57,12 @@ my $lib = Template::Anti::Library.new(
     is "$output\n", "t/basic.out".IO.slurp, 'output is as expected';
 }
 
+throws-like {
+    $lib.process("testing.not-a-method");
+}, Exception, qq[no view method named "not-a-method"];
+
+throws-like {
+    $lib.process("not-a-view.not-a-method");
+}, Exception, qq[no view named "not-a-view"];
+
 done-testing;
