@@ -1,3 +1,9 @@
+v0.3
+
+    * Previously, template objects were reused as-is every time. This meant that
+      each subsequent run built on previous modifications to the original.
+      Not cool.
+
 v0.2
 
     * Complete rewrite.

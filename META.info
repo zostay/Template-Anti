@@ -1,6 +1,6 @@
 {
     "name" : "Template::Anti",
-    "version" : "0.2",
+    "version" : "0.3",
     "description" : "The anti-template templating tool.",
     "authors" : [ "Sterling Hanenkamp <hanenkamp@cpan.org>" ],
     "provides" : {
