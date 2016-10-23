@@ -433,16 +433,17 @@ my sub grab-format($format) {
 proto sub anti-template(|) { * }
 multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
     my $format-object = grab-format($format);
-    my $struct = $format-object.parse($source);
 
     with $object {
         sub (|c) {
+            my $struct = $format-object.parse($source);
             $object.&process($struct, |c);
             ~$struct;
         }
     }
     else {
         sub (|c) {
+            my $struct = $format-object.parse($source);
             process($struct, |c);
             ~$struct;
         }
@@ -461,12 +462,16 @@ multi sub anti-template(Str:D :$source!, Str:D :$format = 'html', :$object) retu
 
     with $object {
         sub (|c) {
+            my $struct = $format-object.parse($source);
+            $format-object.embedded-source($struct, :$method);
             $object.&process($struct, |c);
             ~$struct;
         }
     }
     else {
         sub (|c) {
+            my $struct = $format-object.parse($source);
+            $format-object.embedded-source($struct, :$method);
             process($struct, |c);
             ~$struct;
         }
