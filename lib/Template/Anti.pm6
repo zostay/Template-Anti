@@ -383,9 +383,9 @@ my class DOM is DOM::Tiny {
 }
 
 my class Format::DOM {
-    method parse($source) {
-        DOM.parse($source)
-    }
+    method parse($source) { DOM.parse($source) }
+    method prepare-original($master) { $master.deep-clone }
+
     method embedded-source($dom, :$method) {
         my $routine = $method ?? 'method' !! 'sub';
         my @codes = gather for $dom.find('script[type="application/anti+perl6"]') -> $script {
@@ -433,17 +433,18 @@ my sub grab-format($format) {
 proto sub anti-template(|) { * }
 multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
     my $format-object = grab-format($format);
+    my $master = $format-object.parse($source);
 
     with $object {
         sub (|c) {
-            my $struct = $format-object.parse($source);
+            my $struct = $format-object.prepare-original($master);
             $object.&process($struct, |c);
             ~$struct;
         }
     }
     else {
         sub (|c) {
-            my $struct = $format-object.parse($source);
+            my $struct = $format-object.prepare-original($master);
             process($struct, |c);
             ~$struct;
         }
@@ -452,26 +453,24 @@ multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html', :$ob
 
 multi sub anti-template(Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
     my $format-object = grab-format($format);
-    my $struct = $format-object.parse($source);
+    my $master = $format-object.parse($source);
 
     die qq[embedded anti-templates are not available for source formatted as "$format"]
         unless $format-object.^can('embedded-source');
 
     my $method = defined $object;
-    my &process = $format-object.embedded-source($struct, :$method);
+    my &process = $format-object.embedded-source($master, :$method);
 
     with $object {
         sub (|c) {
-            my $struct = $format-object.parse($source);
-            $format-object.embedded-source($struct, :$method);
+            my $struct = $format-object.prepare-original($master);
             $object.&process($struct, |c);
             ~$struct;
         }
     }
     else {
         sub (|c) {
-            my $struct = $format-object.parse($source);
-            $format-object.embedded-source($struct, :$method);
+            my $struct = $format-object.prepare-original($master);
             process($struct, |c);
             ~$struct;
         }
@@ -648,9 +647,13 @@ work with plain text files that contain specially formatted blanks.
                 }.new(:$source);
             }
 
-            method embedded-source($struct) {
+            method prepare-original($master) {
+                $master.clone;
+            }
+
+            method embedded-source($master) {
                 my $code;
-                ($struct.source, $code) = $struct.source.split("\n__CODE__\n", 2);
+                ($master.source, $code) = $master.source.split("\n__CODE__\n", 2);
 
                 use MONKEY-SEE-NO-EVAL;
                 my $sub = $code.EVAL;
@@ -660,9 +663,17 @@ work with plain text files that contain specially formatted blanks.
         }
     }
 
+The C<parse> method is only called once, when the template is initially built.
+This is called before the template is ever processed. This method should take
+the given string as the template to parse and parse it. Then, the
+C<prepare-original> method will be called just before processing each call to
+the template. This allows the original to be parsed once and cached.
+
 This also adds support for embedding the code part of the template in the source
 following a C<__CODE__> annotation. Here's a couple examples using this custom
-object.
+object. The C<embedded-source> method will be called witha reference to the
+master returned by C<parse> and the value cached will include any modifications
+that the C<embedded-source> method makes to the original document.
 
 In C<welcome.txt>, we could have this:
 
