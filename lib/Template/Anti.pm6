@@ -1,4 +1,4 @@
-unit module Template::Anti:ver<0.3>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
+unit module Template::Anti:ver<0.3.1>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
 
 use v6;
 
@@ -362,7 +362,7 @@ It would now rea:
 
 =end pod
 
-my class DOM is DOM::Tiny {
+class DOM is DOM::Tiny {
     multi method CALL-ME($selector) {
         self.find($selector);
     }
@@ -382,7 +382,7 @@ my class DOM is DOM::Tiny {
     }
 }
 
-my class Format::DOM {
+class Format::DOM {
     method parse($source) { DOM.parse($source) }
     method prepare-original($master) { $master.deep-clone }
 
