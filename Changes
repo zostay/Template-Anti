@@ -1,3 +1,8 @@
+v0.3.2
+    
+    * Corrected problems documentation on custom format extensions.
+    * Fixed minor bugs related to custom extensions.
+
 v0.3.1
 
     * Experimental change to make the modified DOM and formatter available for

@@ -1,4 +1,4 @@
-unit module Template::Anti:ver<0.3.1>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
+unit module Template::Anti:ver<0.3.2>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
 
 use v6;
 
@@ -461,7 +461,7 @@ multi sub anti-template(Str:D :$source!, Str:D :$format = 'html', :$object) retu
     my $method = defined $object;
     my &process = $format-object.embedded-source($master, :$method);
 
-    with $object {
+    if $object.defined && &process ~~ Method {
         sub (|c) {
             my $struct = $format-object.prepare-original($master);
             $object.&process($struct, |c);
@@ -533,9 +533,13 @@ role Process[$format, $source-file] {
     method embedded { $.yada }
 }
 
-multi trait_mod:<is> (Routine $r, :$anti-template!) is export(:MANDATORY) {
+multi trait_mod:<is> (Routine $r, :$anti-template! is copy) is export(:MANDATORY) {
     my ($format, $source-file);
     given $anti-template {
+        when List {
+            $anti-template = %(|$anti-template);
+            proceed;
+        }
         when Associative {
             $format      = $anti-template<format> // 'html';
             $source-file = $anti-template<source>;
@@ -639,7 +643,7 @@ work with plain text files that contain specially formatted blanks.
                     has $.source is rw;
 
                     method set($blank, $value) {
-                        $!source ~~ s:g/ < "_$blank_" > /$value/;
+                        $!source ~~ s:g/ "_$blank_" /$value/;
                         Mu
                     }
 
@@ -701,7 +705,7 @@ And in C<welcome-embedded.html>, we could have this:
 
     __CODE__
     sub ($email, *%data) {
-        $email.set($var, %data{ $var }) for <name dark-lord>;
+        $email.set($_, %data{ $_ }) for <name dark-lord>;
     }
 
 And in our code, we can write this:
@@ -709,11 +713,11 @@ And in our code, we can write this:
     use Template::Anti;
 
     class MyEmails {
-        method hello($email, *%data) is anti-template(:source<welcome.html>) {
-            $email.set($var, %data{ $var }) for <name dark-lord>;
+        method hello($email, *%data) is anti-template(:source<welcome.txt>, :format<blanktext>) {
+            $email.set($_, %data{ $_ }) for <name dark-lord>;
         }
 
-        method hello-embedded($email, %adata) is anti-template(:source<welcome-embedded.html>) {
+        method hello-embedded($email, %adata) is anti-template(:source<welcome-embedded.txt>, :format<blanktext>) {
             ...
         }
     }
@@ -723,8 +727,8 @@ And in our code, we can write this:
         views => { :email(MyEmails.new) },
     );
 
-    say $ta.process('email.welcome', :name<Starkiller>, :dark-lord<Darth Vader>);
-    say $ta.process('email.welcome-embedded', :name<Starkiller>, :dark-lord<Darth Vader>);
+    say $ta.process('email.hello', :name<Starkiller>, :dark-lord<Darth Vader>);
+    say $ta.process('email.hello-embedded', :name<Starkiller>, :dark-lord<Darth Vader>);
 
 This way, you can get code separated from your templates in any format you like.
 
