@@ -2,10 +2,11 @@ use v6;
 
 use Test;
 use lib 't/lib';
-use Template::Anti :one-off;
 
-multi sub get-anti-format-object('blanktext') {
-    class {
+class TestFoo {
+    use Template::Anti :one-off;
+
+    my class BlankText is Template::Anti::Format {
         method parse($source) {
             class {
                 has $.source is rw;
@@ -32,20 +33,29 @@ multi sub get-anti-format-object('blanktext') {
 
             $sub;
         }
+
+        method render($final) { $final.source }
+    }
+
+    has &.hello;
+    has &.hello-embedded;
+
+    submethod BUILD(:$welcome, :$welcome-embedded) {
+        &!hello = anti-template :source($welcome), :format(BlankText), -> $email, *%data {
+            $email.set($_, %data{ $_ }) for <name dark-lord>;
+        }
+
+        &!hello-embedded = anti-template :source($welcome-embedded), :format(BlankText);
     }
 }
 
 my $welcome = "t/view/welcome.txt".IO.slurp;
-my &hello = anti-template :source($welcome), :format<blanktext>, -> $email, *%data {
-    $email.set($_, %data{ $_ }) for <name dark-lord>;
-}
-
 my $welcome-embedded = "t/view/welcome-embedded.txt".IO.slurp;
-my &hello-embedded = anti-template :source($welcome-embedded), :format<blanktext>;
+my $foo = TestFoo.new(:$welcome, :$welcome-embedded);
 
 my $expect = "t/extend.out".IO.slurp;
 
-is hello(:name<Starkiller>, :dark-lord<Darth Vader>), $expect, "custom format works";
-is hello-embedded(:name<Starkiller>, :dark-lord<Darth Vader>), $expect, "custom format with embedded code works";
+is $foo.hello.(:name<Starkiller>, :dark-lord<Darth Vader>), $expect, "custom format works";
+is $foo.hello-embedded.(:name<Starkiller>, :dark-lord<Darth Vader>), $expect, "custom format with embedded code works";
 
 done-testing;

@@ -1,3 +1,12 @@
+v0.4.0
+
+    * COMPATABILITY BREAKING CHANGE: Formats are now specified using a class
+      name, such as DOM, HTML, and XML. Using a format name like "html" or "xml"
+      will no longer work.
+    * COMPATIBILITY  BREAKING CHANGE: Custom formats are built using format
+      classes rather than using a custom multi sub, which worked poorly in some
+      circumstances.
+
 v0.3.2
     
     * Corrected problems documentation on custom format extensions.

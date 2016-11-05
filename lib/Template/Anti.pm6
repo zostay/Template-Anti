@@ -1,4 +1,4 @@
-unit module Template::Anti:ver<0.3.2>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
+unit module Template::Anti:ver<0.4.0>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
 
 use v6;
 
@@ -113,7 +113,7 @@ parameters:
 
 =item The C<source> parameter will name the original file to associate with this processing method.
 
-=item The C<format> parameter names the format to use when parsing the original. It defaults to "html" but may be set to "xml" instead.
+=item The C<format> parameter names the format to use when parsing the original. It defaults to C<HTML> but may be set to C<XML> instead.
 
 The first positional argument to the method will always be the DOM object parsed
 from the original source file. The remaining parameters are whatever you want to
@@ -234,37 +234,26 @@ This marks a method as being a Template::Anti processing method. It takes two na
 
     method tmpl($dom, *%stash) is anti-template(
         :source<file.html>,
-        :format<html>,
+        :format(HTML),
     ) { ... }
 
 The C<:source> is the name of the file to load. The location of the file is
 relatives to the paths set on the C<path> attribute on
 L</Template::Anti::Library>.
 
-The C<:format> is the format to use, usually "html" or "xml" unless you have
+The C<:format> is the format to use, usually C<HTML> or C<XML> unless you have
 defined your own custom formats.
 
 A method declared with this trait that is a yada-method (i.e., it has no code in
 the block, just a yada (...), will cause Template::Anti to assume that the code
 is embedded within the original source file named in C<:source>.
 
-=head2 multi get-anti-format-object
-
-    multi get-anti-format-object('html')
-    multi get-anti-format-object('xml')
-
-These each return a format object that will parse the source using a slightly extended version of L<DOM::Tiny> and return it. They will also extract embedded processing code from C«<script>» tags in the source.
-
-New multis can be defined to extend the formats available to Template::Anti. See L</Advanced Formats> for details.
-
-These two multi implementations are always exported.
-
 =head2 sub anti-template
 
     use Template::Anti :one-off;
-    sub anti-template(&process?, Str:D :$source!, Str:D :$format = 'html') returns Routine:D
+    sub anti-template(&process?, Str:D :$source!, Template::Anti::Format :$format = DOM) returns Routine:D
 
-This is exported in the C<:one-off> group. This routine builds a template routine and returns it. The returned routine completely encapsulates the processing of the template.
+This is exported in the C<:one-off> export group. This routine builds a template routine and returns it. The returned routine completely encapsulates the processing of the template.
 
 See L</One-off Templates> for a full example of this routine in action.
 
@@ -272,13 +261,13 @@ The C<&process> is optional. When given, it names the routine to call to transfo
 
     sub ($dom, |c) { ... }
 
-The return value of this routine is ignored. It may modify the C<$dom> object in place. The type of that C<$dom> object will be a subclass of L<DOM::Tiny> when C<$format> is set to "html" and "xml".
+The return value of this routine is ignored. It may modify the C<$dom> object in place. The type of that C<$dom> object will be a subclass of L<DOM::Tiny> when C<$format> is set to C<HTML> and C<XML>.
 
-The C<$source> is required and contains the complete contents of the original file source. For "html" formats, this would be a regular HTML file. For "xml" formats, it would be a regular XML file.
+The C<$source> is required and contains the complete contents of the original file source. For C<HTML> formats, this would be a regular HTML file. For C<XML> formats, it would be a regular XML file.
 
-The C<$format> tells the C<anti-template> routine which format the file is in and how to parse and process it. Template::Anti provides two built-in formats, "html" and "xml", both use a slightly extended L<DOM::Tiny> to parse and process the file. Custom formats can also be crafted. See L</Advanced Formats>.
+The C<$format> tells the C<anti-template> routine which format the file is in and how to parse and process it. Template::Anti provides built-in formats, C<Template::Anti::Format::DOM>, C<Template::Anti::Format::HTML>, and C<Template::Anti::Format::XML>, which are exported by default as C<DOM>, C<HTML>, and C<XML>, respectively. C<XML> and C<HTML> are both subclasses of C<DOM>. Each use a slightly extended L<DOM::Tiny> to parse and process the file. Custom formats can also be crafted. See L</Advanced Formats>.
 
-The format also determines how to extract embedded templates. In the case of "xml" and "html", the embedding is handled via C«<script>» tags that have the type set to "application/anti+perl6". These actually support the use of multiple C«<script>» tags, which are process in order they appear in the file, each getting it's own C<data-dom> and C<data-stash> settings (see L</Inline Processing>).
+The format also determines how to extract embedded templates. In the case of C<DOM>, C<HTML>, C<XML>, the embedding is handled via C«<script>» tags that have the type set to "application/anti+perl6". These actually support the use of multiple C«<script>» tags, which are process in order they appear in the file, each getting it's own C<data-dom> and C<data-stash> settings (see L</Inline Processing>).
 
 The returned routine will work something like this:
 
@@ -301,15 +290,16 @@ Here the C<|c> capture will be passed through to the C<&process> routine. Here a
 The arguments are passed through in just that fashion.
 
 Once the C<&process> passed to C<anti-template> has been called, the template
-object (C<$dom> in the signature above), will be stringified by calling the
+object (C<$dom> in the signature above), will be serialized by calling the
 C<Str> method on it. That stringified version of the value is returned.
 
 =head1 DOM::Tiny Customization
 
-Template::Anti uses a slightly customized subclass of L<DOM::Tiny> that provide
-a couple additional features that are useful when processing the original source
-file. Some or all of these might be rolled up into DOM::Tiny in the future,
-but they are here for now.
+When the built-in formats, C<DOM>, C<HTML>, and C<XML>, are used Template::Anti
+uses a slightly customized subclass of L<DOM::Tiny> that provide a couple
+additional features that are useful when processing the original source file.
+Some or all of these might be rolled up into DOM::Tiny in the future, but they
+are here for now.
 
 (It should be noted that where the signatures here show L<DOM::Tiny>, this is
 really returning the slightly extended subclass that Template::Anti provies. The
@@ -382,7 +372,13 @@ class DOM is DOM::Tiny {
     }
 }
 
-class Format::DOM {
+class Format {
+    method parse($source) { ... }
+    method prepare-original($master) { ... }
+    method render($final) { ... }
+}
+
+class Format::DOM is export(:DEFAULT, :one-off) is Format {
     method parse($source) { DOM.parse($source) }
     method prepare-original($master) { $master.deep-clone }
 
@@ -409,68 +405,56 @@ class Format::DOM {
             }
         }
     }
+
+    method render($final) { ~$final }
 }
 
-proto sub get-anti-format-object(|) { * }
-multi sub get-anti-format-object('html') is export(:MANDATORY) { Format::DOM }
-multi sub get-anti-format-object('xml') is export(:MANDATORY) { Format::DOM }
-
-my sub grab-format($format) {
-    CATCH {
-        default {
-            die qq[unable to build a template for the format named "$format": $_]
-        }
-    }
-
-    my $format-object = get-anti-format-object($format);
-
-    die qq[no format type named "$format" is defined]
-         unless $format-object.^can('parse');
-
-    $format-object;
+class Format::HTML is export(:DEFAULT, :one-off) is Format::DOM {
+    method parse($source) { DOM.parse($source, :!xml) }
+}
+class Format::XML is export(:DEFAULT, :one-off) is Format::DOM {
+    method parse($source) { DOM.parse($source, :xml) }
 }
 
 proto sub anti-template(|) { * }
-multi sub anti-template(&process, Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
-    my $format-object = grab-format($format);
-    my $master = $format-object.parse($source);
+multi sub anti-template(&process, Str:D :$source!, Format :$format = Format::DOM, :$object) returns Routine:D is export(:one-off) {
+    my $master = $format.parse($source);
 
     with $object {
         sub (|c) {
-            my $struct = $format-object.prepare-original($master);
+            my $struct = $format.prepare-original($master);
             $object.&process($struct, |c);
-            ~$struct;
+            $format.render($struct);
         }
     }
     else {
         sub (|c) {
-            my $struct = $format-object.prepare-original($master);
+            my $struct = $format.prepare-original($master);
             process($struct, |c);
-            ~$struct;
+            $format.render($struct);
         }
     }
 }
 
-multi sub anti-template(Str:D :$source!, Str:D :$format = 'html', :$object) returns Routine:D is export(:one-off) {
-    my $format-object = grab-format($format);
-    my $master = $format-object.parse($source);
+multi sub anti-template(Str:D :$source!, Format :$format = Format::DOM, :$object) returns Routine:D is export(:one-off) {
+    my $master = $format.parse($source);
 
-    die qq[embedded anti-templates are not available for source formatted as "$format"]
-        unless $format-object.^can('embedded-source');
+    die qq[embedded anti-templates are not available for source formatted as "{$format.^name}"]
+        unless $format.^can('embedded-source');
 
     my $method = defined $object;
-    my &process = $format-object.embedded-source($master, :$method);
+    my &process = $format.embedded-source($master, :$method);
 
     if $object.defined && &process ~~ Method {
         sub (|c) {
-            my $struct = $format-object.prepare-original($master);
+            my $struct = $format.prepare-original($master);
             $object.&process($struct, |c);
             ~$struct;
         }
     }
     else {
         sub (|c) {
-            my $struct = $format-object.prepare-original($master);
+            my $struct = $format.prepare-original($master);
             process($struct, |c);
             ~$struct;
         }
@@ -527,7 +511,7 @@ class Library {
 }
 
 role Process[$format, $source-file] {
-    has Str $.format = $format;
+    has Format $.format = $format;
     has Str $.source-file = $source-file;
 
     method embedded { $.yada }
@@ -541,15 +525,15 @@ multi trait_mod:<is> (Routine $r, :$anti-template! is copy) is export(:MANDATORY
             proceed;
         }
         when Associative {
-            $format      = $anti-template<format> // 'html';
+            $format      = $anti-template<format>:exists ?? $anti-template<format> !! Format::DOM;
             $source-file = $anti-template<source>;
         }
-        when Str {
+        when Format {
             $format      = $anti-template;
             $source-file = $r.name;
         }
         default {
-            $format      = 'html';
+            $format      = Format::DOM;
             $source-file = $r.name;
         }
     }
@@ -632,46 +616,48 @@ exported when the C<:one-off> flag is passed during import.
 While this library has been built using L<DOM::Tiny> to implement XML and HTML
 parsing and rendering of template sources, it is possible to extend
 Template::Anti to support parsing sources in any other format. To do this, you
-need to define a custom C<multi sub> named C<get-anti-format-object> in your
-code. For example, here is one built with a couple anonymous classes that will
-work with plain text files that contain specially formatted blanks.
+need to define a custom class that extends L<Template::Anti::Format> in your
+code. For example, here is one built with the help of a second anonymous classes
+that will work with plain text files that contain specially formatted blanks.
 
-    multi sub get-anti-format-object('blanktext') {
-        class {
-            method parse($source) {
-                class {
-                    has $.source is rw;
+    class BlankText is Template::Anti::Format {
+        method parse($source) {
+            class {
+                has $.source is rw;
 
-                    method set($blank, $value) {
-                        $!source ~~ s:g/ "_$blank_" /$value/;
-                        Mu
-                    }
+                method set($blank, $value) {
+                    $!source ~~ s:g/ "_$blank_" /$value/;
+                    Mu
+                }
 
-                    method Str { $.source }
-                }.new(:$source);
-            }
-
-            method prepare-original($master) {
-                $master.clone;
-            }
-
-            method embedded-source($master) {
-                my $code;
-                ($master.source, $code) = $master.source.split("\n__CODE__\n", 2);
-
-                use MONKEY-SEE-NO-EVAL;
-                my $sub = $code.EVAL;
-
-                $sub;
-            }
+                method Str { $.source }
+            }.new(:$source);
         }
+
+        method prepare-original($master) {
+            $master.clone;
+        }
+
+        method embedded-source($master) {
+            my $code;
+            ($master.source, $code) = $master.source.split("\n__CODE__\n", 2);
+
+            use MONKEY-SEE-NO-EVAL;
+            my $sub = $code.EVAL;
+
+            $sub;
+        }
+
+        method render($final) { $final.source }
     }
 
 The C<parse> method is only called once, when the template is initially built.
 This is called before the template is ever processed. This method should take
 the given string as the template to parse and parse it. Then, the
 C<prepare-original> method will be called just before processing each call to
-the template. This allows the original to be parsed once and cached.
+the template. This allows the original to be parsed once and cached. Finally,
+the C<render> method will be called to retrieve the final serialized version of
+the now modified original.
 
 This also adds support for embedding the code part of the template in the source
 following a C<__CODE__> annotation. Here's a couple examples using this custom
@@ -713,11 +699,11 @@ And in our code, we can write this:
     use Template::Anti;
 
     class MyEmails {
-        method hello($email, *%data) is anti-template(:source<welcome.txt>, :format<blanktext>) {
+        method hello($email, *%data) is anti-template(:source<welcome.txt>, :format(BlankText)) {
             $email.set($_, %data{ $_ }) for <name dark-lord>;
         }
 
-        method hello-embedded($email, %adata) is anti-template(:source<welcome-embedded.txt>, :format<blanktext>) {
+        method hello-embedded($email, %adata) is anti-template(:source<welcome-embedded.txt>, :format(BlankText)) {
             ...
         }
     }
@@ -732,13 +718,11 @@ And in our code, we can write this:
 
 This way, you can get code separated from your templates in any format you like.
 
-If your format object does not have an C<embedded-source> method defined,
+If your format class does not have an C<embedded-source> method defined,
 attempting to us the embedded form of C<anti-template> will result in an
 exception.
 
-Finally, whatever object is used as the parsed structure for your template
-(i.e., takes the place of the L<DOM::Tiny> object provided with the built-in
-"xml" and "html" formats) must supply a C<Str> method to render the object to
-string.
+Finally, the format class must supply a C<render> method to serialize the
+object to string.
 
 =end pod
