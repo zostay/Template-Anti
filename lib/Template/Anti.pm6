@@ -418,7 +418,7 @@ multi sub get-anti-format-object('xml') is export(:MANDATORY) { Format::DOM }
 my sub grab-format($format) {
     CATCH {
         default {
-            die qq[unable to build a template for the format named "$format"]
+            die qq[unable to build a template for the format named "$format": $_]
         }
     }
 
