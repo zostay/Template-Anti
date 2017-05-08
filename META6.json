@@ -8,7 +8,8 @@
         "Template::Anti": "lib/Template/Anti.pm6",
         "Template::Anti::Library": "lib/Template/Anti.pm6"
     },
-    "depends" : [ "DOM::Tiny", "Test", "Test::META" ],
+    "depends" : [ "DOM::Tiny" ],
+    "test-depends" : [ "Test", "Test::META" ],
     "source-url" : "git://github.com/zostay/Template-Anti.git",
     "perl": "6.c"
 }
