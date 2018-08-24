@@ -33,6 +33,8 @@ class BlankText is Template::Anti::Format {
 }
 
 class MyEmails {
+    our constant MY-RESOURCES = %?RESOURCES;
+
     method hello($email, *%data)
     is anti-template(
         :source<welcome.txt>,

@@ -1,3 +1,4 @@
+unit package Template::Anti;
 use v6;
 
 use Template::Anti::NodeSet;
@@ -176,7 +177,7 @@ This is the B<has-attribute selector>. It matches any element that has this attr
 
 =end pod
 
-class Template::Anti::Template {
+class Template {
     has XML::Node $.template; #= The XML document or element to manipulate for output.
 
     #| The selector for searching through and manipulating the document.
@@ -241,13 +242,13 @@ class Template::Anti::Template {
         multi sub render-walk($print, XML::Text $text) {
             $print($text.Str.trans([ '<', '>', '&' ] => [ '&lt;', '&gt;', '&amp;' ]));
         }
-        
+
         multi sub render-walk($print, XML::Comment $comment) {
             $print($comment.Str);
         }
-        
+
         multi sub render-walk($print, XML::PI $pi) { }
-        
+
         multi sub render-walk($print, XML::CDATA $c) {
             my $cdata = $c.data;
             $cdata.=trans([ '<', '>', '&' ] => [ '&lt;', '&gtl;', '&amp;' ]);

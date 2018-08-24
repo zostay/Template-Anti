@@ -461,15 +461,52 @@ multi sub anti-template(Str:D :$source!, Format :$format = Format::DOM, :$object
     }
 }
 
+role Library::PathSearcher {
+    method search($path, Str $template) { ... }
+}
+
+class Library::Resources does Library::PathSearcher {
+    proto method search(|) { * }
+    multi method search(Distribution::Resources $path, Str $template) {
+        return $_ with $path{ $template };
+        Nil;
+    }
+
+    multi method search($, Str $template) { Nil }
+}
+
+class Library::IO does Library::PathSearcher {
+    proto method search(|) { * }
+    multi method search(Str $path, Str $template) {
+        self.search($path.IO, $template);
+    }
+
+    multi method search(IO::Path $path, Str $template) {
+        my $try-file = $path.add($template);
+        return $try-file if $try-file ~~ :f;
+        Nil;
+    }
+
+    multi method search($, Str $template) { Nil }
+}
+
 class Library {
     has @.path;
     has %.views;
     has %.template-cache;
 
+    has @.path-searcher = Library::Resources, Library::IO;
+
+    method !search-path($path, $template) {
+        for @.path-searcher {
+            return $_ with .search($path, $template);
+        }
+        Nil;
+    }
+
     method locate(Library:D: Str $template) {
         for @.path -> $search-path {
-            my $try-file = $search-path.IO.child($template);
-            return $try-file if $try-file ~~ :f;
+            return $_ with self!search-path($search-path, $template);
         }
 
         die qq[no template source file named "$template" found];
