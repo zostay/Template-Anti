@@ -465,10 +465,18 @@ role Library::PathSearcher {
     method search($path, Str $template) { ... }
 }
 
+class ResourcesPath {
+    has Associative $.resources;
+    has Str $.prefix;
+}
+
 class Library::Resources does Library::PathSearcher {
     proto method search(|) { * }
-    multi method search(Distribution::Resources $path, Str $template) {
-        return $_ with $path{ $template };
+    multi method search(ResourcesPath $path, Str $template) {
+        my $prefix = '';
+        $prefix = "$_/" with $path.prefix;
+
+        return $_ with $path.resources.{ "$prefix$template" };
         Nil;
     }
 

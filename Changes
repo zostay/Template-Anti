@@ -1,3 +1,11 @@
+{{$NEXT}}
+
+    * Added support for custom template search path plugins.
+    * Implemented pre-existing support for standard IO::Path search paths with
+      the new template search path API.
+    * Added a new search path that allows prefixed paths within %?RESOURCES to
+      be used for template search paths.
+
 v0.4.3
 
     * Releasing to CPAN.

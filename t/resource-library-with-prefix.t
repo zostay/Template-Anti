@@ -5,10 +5,20 @@ use lib 't/lib';
 use MyEmails;
 use Template::Anti;
 
-my $ta = Template::Anti::Library.new(
+class Slurpish {
+    has $.file;
+    method slurp() { $.file.slurp }
+}
 
+my %fake-resources = %(
+    "things/welcome.txt" => Slurpish.new(file => "t/resources/welcome.txt".IO),
+    "things/welcome-embedded.txt" => Slurpish.new(file => "t/resources/welcome-embedded.txt".IO),
+);
+
+my $ta = Template::Anti::Library.new(
     path => Template::Anti::ResourcesPath.new(
-        resources => MyEmails::MY-RESOURCES,
+        resources => %fake-resources,
+        prefix    => 'things',
     ),
     views => { :email(MyEmails.new) },
 );
