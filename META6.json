@@ -1,40 +1,40 @@
 {
   "auth": null,
-  "provides": {
-    "Template::Anti": "lib/Template/Anti.pm6",
-    "Template::Anti::Library": "lib/Template/Anti.pm6",
-    "Template::Anti::Library::PathSearcher": "lib/Template/Anti.pm6",
-    "Template::Anti::Library::Resources": "lib/Template/Anti.pm6",
-    "Template::Anti::Library::IO": "lib/Template/Anti.pm6",
-    "Template::Anti::ResourcesPath": "lib/Template/Anti.pm6"
-  },
-  "perl": "6.c",
   "license": "Artistic-2.0",
-  "tags": [
-
-  ],
-  "resources": [
-
-  ],
-  "depends": [
-    "DOM::Tiny"
-  ],
   "authors": [
     "Sterling Hanenkamp <hanenkamp@cpan.org>"
   ],
+  "description": "The anti-template templating tool.",
   "meta-version": "0",
   "source-url": "git://github.com/zostay/Template-Anti.git",
   "test-depends": [
     "Test",
     "Test::META"
   ],
-  "build-depends": [
-
-  ],
-  "description": "The anti-template templating tool.",
   "name": "Template::Anti",
+  "provides": {
+    "Template::Anti::Library::IO": "lib/Template/Anti.pm6",
+    "Template::Anti::Library": "lib/Template/Anti.pm6",
+    "Template::Anti::ResourcesPath": "lib/Template/Anti.pm6",
+    "Template::Anti::Library::Resources": "lib/Template/Anti.pm6",
+    "Template::Anti": "lib/Template/Anti.pm6",
+    "Template::Anti::Library::PathSearcher": "lib/Template/Anti.pm6"
+  },
+  "tags": [
+    
+  ],
   "support": {
     "source": null
   },
-  "version": "0.5.0"
+  "depends": [
+    "DOM::Tiny"
+  ],
+  "resources": [
+    
+  ],
+  "build-depends": [
+    
+  ],
+  "version": "0.5.1",
+  "perl": "6.c"
 }
