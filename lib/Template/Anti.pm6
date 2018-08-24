@@ -186,8 +186,18 @@ constructed.
         ...
     );
 
-These paths name the directories that are searched when locating an original
-source file.
+These paths name the template sources that are searched when locating an
+original source file. These may given as strings, which will be coerced into L<IO::Path> objects, as IO::Path objects, or as L<Template::Anti::ResourcesPath> objects. The last option allows you to ship your templates as part of the distribution's resource files:
+
+    my $ta = Template::Anti::Library.new(
+        path => Template::Anti::ResourcesPath.new(
+            resources => %?RESOURCES,
+            prefix    => 'path/to/templates',
+        ),
+        ...
+    );
+
+These might be other kinds of search paths as well. See C<path-searcher> for even more flexibility with what is provided to C<path>.
 
 =head2 method views
 
@@ -210,6 +220,22 @@ that have been tagged with the C<is anti-template> trait. The names are used by
 the L</method process> as part of the name used to look up the template to
 process.
 
+=head2 method path-searcher
+
+    method path-searcher() returns Array:D
+
+Thisi s the accessor for the path searcher plugins configured during construction. By default this includes two plugins, in this order:
+
+=item C<Template::Anti::Library::Resources> If a C<path> is given a C<Template::Anti::ResourcesPath> object as a search path, the named resources object will be searched for source files. This plugin uses the C<resources> provided to that object as the hash to search. It prefixes the given C<prefix>, if any is provided, to find the source files in the distribution's C<%?RESOURCES>.
+
+=item C<Template::Anti::Library::IO> If a C<path> is given as a L<Str> or as a L<IO::Path> object, this will assume that value is a directory to search for source files.
+
+In addition to these, you may provide your own path searcher plugins. These plugins must implement the C<Template::Anti::Library::PathSearcher> role, which requires one method to be implemented:
+
+    method search($path, Str $template --> IO::Handle) { ... }
+
+This method should return C<Nil> when the named C<$template> is not found in this search path or a defined L<IO::Handle>-like object if it is found. At this time, all that's required is that the defined object provide the C<.slurp()> method, but future releases may require (or benefit from) additional functionality.
+
 =head2 method process
 
     method process(Str $template, |c) returns Str:D
@@ -223,6 +249,38 @@ after the template name are passed as is through to the processing method).
 The C<$template> name itself should be composed of two names separated by a
 period ("."). The first name is name given to the L</method views> parameter.
 The second is the name of the processing method to call on that object.
+
+=head1 Template::Anti::ResourcesPath
+
+=head2 method resources
+
+    method resources(--> Associative:D)
+
+When used to setup a search path in C<Template::Anti::Library>, this should be set to C<%?RESOURCES> within the current distribution.
+
+=head2 method prefix
+
+    method prefix(--> Str)
+
+When used to setup a search path in C<Template::Anti::Library>, this is the prefix to add to every key being looked up in C<resources>. This will be path-like, so a prefix of "stuff" and a template named "things.html" will result in a key lookup like "stuff/things.html".
+
+=head1 Template::Anti::Library::PathSearcher
+
+This is a role that must be implemented by any custom path searcher plugin. It is implemented by C<Template::Anti::Library::Resources> and C<Template::Anti::Lirary::IO>.
+
+=head2 method search
+
+    method search($path, Str $template --> IO::Handle)
+
+This method must be implemented by all plugin searcher classes. It will return C<Nil> if no template named C<$template> can be found at the given C<$path> and also when the plugin does not know how to intepret whatever kind of object C<$path> is.
+
+=head1 Template::Anti::Library::Resources
+
+This is a path searcher that is able to turn C<Template::Anti::ResourcesPath> path objects into source files.
+
+=head1 Template::Anti::Library::IO
+
+This is a path searcher that is able to turn L<Str> and L<IO::Path> path objects into source files.
 
 =head1 Exported Routines
 
