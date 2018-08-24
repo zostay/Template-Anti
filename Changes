@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+    * Bugfix: Fixed the list of provided classes for the distribution.
+
 v0.5.0	2018-08-23
 
     * Added support for custom template search path plugins.

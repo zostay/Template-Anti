@@ -2,15 +2,19 @@
   "auth": null,
   "provides": {
     "Template::Anti": "lib/Template/Anti.pm6",
-    "Template::Anti::Library": "lib/Template/Anti.pm6"
+    "Template::Anti::Library": "lib/Template/Anti.pm6",
+    "Template::Anti::Library::PathSearcher": "lib/Template/Anti.pm6",
+    "Template::Anti::Library::Resources": "lib/Template/Anti.pm6",
+    "Template::Anti::Library::IO": "lib/Template/Anti.pm6",
+    "Template::Anti::ResourcesPath": "lib/Template/Anti.pm6"
   },
   "perl": "6.c",
   "license": "Artistic-2.0",
   "tags": [
-    
+
   ],
   "resources": [
-    
+
   ],
   "depends": [
     "DOM::Tiny"
@@ -25,7 +29,7 @@
     "Test::META"
   ],
   "build-depends": [
-    
+
   ],
   "description": "The anti-template templating tool.",
   "name": "Template::Anti",
