@@ -339,7 +339,7 @@ class Template::Anti::Selector::Actions {
 
             my $attr-value = $node.attribs{$name};
 
-            $attr-value.defined 
+            $attr-value.defined
                 && $attr-value eq $match
         });
     }
@@ -385,7 +385,7 @@ class Template::Anti::Selector {
         );
 
         die "unable to parse '$selector'" unless $match;
-        
+
         my $iter = Template::Anti::Selector::NodeWalker.new(
             origin => $!source,
         );

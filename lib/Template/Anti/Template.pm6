@@ -1,5 +1,5 @@
-unit package Template::Anti;
 use v6;
+unit package Template::Anti;
 
 use Template::Anti::NodeSet;
 use Template::Anti::Selector;

@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+    * Fix location of use v6 for v6.d. :(
+
 v0.5.1	2018-08-23
 
     * Bugfix: Fixed the list of provided classes for the distribution.
