@@ -1,6 +1,6 @@
 use v6;
 
-unit module Template::Anti:ver<0.5.1>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
+unit module Template::Anti:ver<0.5.2>:auth<Sterling Hanenkamp (hanenkamp@cpan.org)>;
 
 use DOM::Tiny;
 
